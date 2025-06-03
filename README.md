@@ -134,6 +134,33 @@ By unifying HPC, IoT, and multi-model storage in a single repository, KadeDB:
 2. Ensures compliance
 3. Drives innovation across sectors
    - From precision medicine to smart factories
+## Building and Development
+
+For detailed build instructions, dependencies, and development workflow, please see the [BUILD.md](BUILD.md) file.
+
+### Quick Start
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/KadeDB.git
+cd KadeDB
+
+# Configure and build
+mkdir -p build && cd build
+cmake ..
+cmake --build . -- -j$(nproc)
+
+# Run tests
+ctest --output-on-failure
+```
+
+### Key Features
+
+- **Cross-platform**: Builds on Linux, macOS, and Windows
+- **Flexible Build Options**: Customize with various CMake options
+- **Development Tools**: Integration with clang-format, clang-tidy, and more
+- **CI/CD**: Automated testing and packaging with GitHub Actions
+
 ## Repository Structure
 
 ```

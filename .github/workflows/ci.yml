@@ -1,0 +1,130 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build:
+    name: Build and Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        build_type: [Debug, Release]
+        exclude:
+          - os: windows-latest
+            build_type: Debug  # Skip Debug on Windows to save CI time
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements-docs.txt
+      if: runner.os != 'Windows'
+    
+    - name: Install Windows dependencies
+      run: |
+        choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System'
+        choco install ninja
+      if: runner.os == 'Windows'
+      shell: pwsh
+    
+    - name: Configure CMake
+      shell: bash
+      run: |
+        mkdir -p build
+        cd build
+        cmake .. -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+                 -DBUILD_TESTS=ON \
+                 -DENABLE_ASAN=${{ matrix.build_type == 'Debug' && 'ON' || 'OFF' }} \
+                 -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+    
+    - name: Build
+      shell: bash
+      run: |
+        cd build
+        cmake --build . --config ${{ matrix.build_type }} -- -j$(nproc)
+    
+    - name: Run tests
+      shell: bash
+      run: |
+        cd build
+        ctest -C ${{ matrix.build_type }} --output-on-failure --timeout 300
+      if: runner.os != 'macos-latest'  # Skip tests on macOS due to GitHub Actions limitations
+    
+    - name: Upload test results
+      if: always() && (runner.os == 'Linux' || runner.os == 'macOS')
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-results-${{ matrix.os }}-${{ matrix.build_type }}
+        path: |
+          build/Testing/**/*.xml
+          build/coverage/**/*
+        retention-days: 7
+    
+    - name: Upload build artifacts
+      if: failure()
+      uses: actions/upload-artifact@v3
+      with:
+        name: build-logs-${{ matrix.os }}-${{ matrix.build_type }}
+        path: |
+          build/CMakeFiles/CMake*.log
+          build/Testing/**/*.log
+        retention-days: 7
+
+  coverage:
+    name: Code Coverage
+    needs: build
+    if: github.event_name == 'push' && matrix.os == 'ubuntu-latest' && matrix.build_type == 'Debug'
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Generate coverage report
+      run: |
+        cd build
+        ctest -T Test
+        lcov --capture --directory . --output-file coverage.info
+        lcov --remove coverage.info '/usr/*' --output-file coverage.info
+        lcov --list coverage.info
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: build/coverage.info
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+
+  package:
+    name: Create Packages
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Create source package
+      run: |
+        mkdir -p dist
+        git archive --format=tar.gz HEAD -o dist/kadedb-src-${{ github.sha }}.tar.gz
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: packages
+        path: dist/
+        retention-days: 5
