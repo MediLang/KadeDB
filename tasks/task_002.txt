@@ -1,0 +1,74 @@
+# Task ID: 2
+# Title: Implement Storage Layer Foundation
+# Status: pending
+# Dependencies: 1
+# Priority: high
+# Description: Develop the core storage layer components including file-based storage with custom format, page management system, buffer pool for caching, and write-ahead logging.
+# Details:
+1. Design and implement the storage file format:
+   - Header structure with metadata
+   - Page-based organization
+   - Versioning support
+
+2. Implement page management system:
+   - Fixed-size page allocation
+   - Page types (data, index, overflow)
+   - Page header structure
+   - Free space management
+
+3. Develop buffer pool for caching:
+   - LRU eviction policy
+   - Dirty page tracking
+   - Thread-safe page access
+   - Configurable memory limits
+
+4. Implement write-ahead logging (WAL):
+   - Log record format
+   - Transaction markers
+   - Checkpoint mechanism
+   - Recovery procedures
+
+Key classes:
+```cpp
+class StorageManager {
+public:
+  Page* allocatePage(PageType type);
+  void freePage(PageId id);
+  Page* fetchPage(PageId id);
+  void flushPage(PageId id);
+  void flushAll();
+private:
+  BufferPool bufferPool_;
+  FileManager fileManager_;
+  WALManager walManager_;
+};
+
+class BufferPool {
+public:
+  Page* getPage(PageId id);
+  void releasePage(PageId id);
+  void markDirty(PageId id);
+private:
+  std::unordered_map<PageId, Frame> frames_;
+  LRUList lruList_;
+};
+
+class WALManager {
+public:
+  LogSequenceNumber appendLogRecord(const LogRecord& record);
+  void checkpoint();
+  void recover();
+private:
+  File logFile_;
+  LogSequenceNumber currentLSN_;
+};
+```
+
+# Test Strategy:
+1. Unit tests for each component (file manager, page manager, buffer pool, WAL)
+2. Integration tests for the complete storage layer
+3. Performance benchmarks for read/write operations
+4. Stress tests with concurrent access
+5. Recovery tests simulating crashes at various points
+6. Memory leak detection with valgrind
+7. Test with various page sizes and buffer configurations

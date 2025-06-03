@@ -1,0 +1,80 @@
+# Task ID: 4
+# Title: Implement Document Storage Engine
+# Status: pending
+# Dependencies: 2
+# Priority: medium
+# Description: Create the document storage engine supporting JSON-like storage for medical notes and configurations, with basic document validation, simple path-based queries, and initial indexing support.
+# Details:
+1. Design document storage format:
+   - BSON-inspired binary format
+   - Document metadata section
+   - Efficient storage of common data types
+
+2. Implement document CRUD operations:
+   - Create/insert documents
+   - Retrieve by ID
+   - Update (full and partial)
+   - Delete operations
+
+3. Develop path-based query system:
+   - Path expression parser
+   - Document traversal
+   - Predicate evaluation
+   - Result collection
+
+4. Implement basic document validation:
+   - Schema definition language
+   - Type checking
+   - Required field validation
+   - Custom validation rules
+
+5. Create initial indexing support:
+   - Path-based indexes
+   - Index maintenance during updates
+   - Index-based query execution
+
+Key classes:
+```cpp
+class DocumentEngine {
+public:
+  DocumentId insertDocument(const std::string& collection, const Document& doc);
+  Document getDocument(const std::string& collection, DocumentId id);
+  void updateDocument(const std::string& collection, DocumentId id, const Document& newDoc);
+  void patchDocument(const std::string& collection, DocumentId id, const Patch& patch);
+  void deleteDocument(const std::string& collection, DocumentId id);
+  ResultSet query(const std::string& collection, const PathQuery& query);
+  void createIndex(const std::string& collection, const std::string& path);
+private:
+  StorageManager& storageManager_;
+  std::unordered_map<std::string, CollectionMetadata> collections_;
+};
+
+class Document {
+public:
+  Value getValue(const std::string& path) const;
+  void setValue(const std::string& path, const Value& value);
+  bool hasPath(const std::string& path) const;
+  std::vector<std::string> getPaths() const;
+private:
+  std::unique_ptr<DocumentNode> root_;
+};
+
+class PathQuery {
+public:
+  PathQuery(const std::string& pathExpr);
+  bool matches(const Document& doc) const;
+private:
+  std::vector<PathPredicate> predicates_;
+};
+```
+
+# Test Strategy:
+1. Unit tests for document CRUD operations
+2. Path query tests with various path expressions
+3. Document validation tests with different schemas
+4. Index performance tests
+5. Large document handling tests
+6. Concurrent access tests
+7. Serialization/deserialization correctness tests
+8. Memory usage profiling
+9. Integration tests with the storage layer

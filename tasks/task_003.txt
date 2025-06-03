@@ -1,0 +1,79 @@
+# Task ID: 3
+# Title: Develop Relational Storage Engine
+# Status: pending
+# Dependencies: 2
+# Priority: high
+# Description: Implement the ACID-compliant relational storage engine with B+ tree indexing, support for primary keys, foreign keys, constraints, and transaction management with MVCC.
+# Details:
+1. Implement table structure:
+   - Schema definition with column types
+   - Row storage format
+   - Table metadata management
+
+2. Develop B+ tree index implementation:
+   - Key comparison functions
+   - Node splitting and merging
+   - Range scan support
+   - Concurrent access
+
+3. Implement constraint system:
+   - Primary key constraints
+   - Foreign key references
+   - Unique constraints
+   - Check constraints
+
+4. Develop MVCC transaction management:
+   - Transaction ID assignment
+   - Version chains for rows
+   - Snapshot isolation
+   - Deadlock detection
+   - Commit/rollback logic
+
+Key classes:
+```cpp
+class RelationalEngine {
+public:
+  TableId createTable(const TableSchema& schema);
+  void dropTable(TableId id);
+  RowId insertRow(TableId tableId, const Row& row);
+  void updateRow(TableId tableId, RowId rowId, const Row& newData);
+  void deleteRow(TableId tableId, RowId rowId);
+  ResultSet scan(TableId tableId, const Predicate& pred);
+private:
+  StorageManager& storageManager_;
+  std::unordered_map<TableId, TableMetadata> tables_;
+  TransactionManager txnManager_;
+};
+
+class BPlusTreeIndex {
+public:
+  void insert(const Key& key, RowId rowId);
+  void remove(const Key& key, RowId rowId);
+  std::vector<RowId> lookup(const Key& key);
+  IndexIterator rangeQuery(const Key& start, const Key& end);
+private:
+  PageId rootPageId_;
+  StorageManager& storageManager_;
+};
+
+class TransactionManager {
+public:
+  TransactionId begin();
+  void commit(TransactionId txnId);
+  void rollback(TransactionId txnId);
+  bool isVisible(TransactionId txnId, VersionId versionId);
+private:
+  std::atomic<TransactionId> nextTxnId_;
+  std::unordered_map<TransactionId, TransactionState> activeTxns_;
+};
+```
+
+# Test Strategy:
+1. Unit tests for B+ tree operations (insert, delete, search, range queries)
+2. Transaction isolation tests (read committed, snapshot isolation)
+3. Constraint validation tests
+4. Concurrent transaction tests with various isolation levels
+5. Recovery tests after simulated crashes
+6. Performance benchmarks for typical OLTP workloads
+7. Stress tests with high concurrency
+8. Correctness verification with SQL test suite
