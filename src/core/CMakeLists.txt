@@ -9,6 +9,9 @@ add_library(kadedb_core
     # Add other core source files here
 )
 
+# Set the output name to avoid conflicts
+set_target_properties(kadedb_core PROPERTIES OUTPUT_NAME kadedb_core)
+
 # Set target properties
 set_target_properties(kadedb_core PROPERTIES
     VERSION ${PROJECT_VERSION}
@@ -16,12 +19,7 @@ set_target_properties(kadedb_core PROPERTIES
     CXX_STANDARD 17
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
-)
-
-# Link core library to storage library
-target_link_libraries(kadedb_core
-    PRIVATE
-        kadedb_storage
+    EXPORT_NAME kadedb_core
 )
 
 # Set include directories
@@ -31,12 +29,27 @@ target_include_directories(kadedb_core
         $<INSTALL_INTERFACE:include>
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
-        ${ROCKSDB_INCLUDE_DIRS}
-        ${ANTLR4_INCLUDE_DIRS}
+)
+
+# Add dependencies
+target_link_libraries(kadedb_core
+    PRIVATE
+        kadedb_storage
+        ${CMAKE_THREAD_LIBS_INIT}
+        ${CMAKE_DL_LIBS}
+    PUBLIC
+        RocksDB::RocksDB
+        OpenSSL::SSL
+        OpenSSL::Crypto
+        ${ANTLR4_RUNTIME_LIBRARIES}
 )
 
 # Link dependencies
 target_link_libraries(kadedb_core
+    PRIVATE
+        kadedb_storage
+        ${CMAKE_THREAD_LIBS_INIT}
+        ${CMAKE_DL_LIBS}
     PUBLIC
         RocksDB::RocksDB
         OpenSSL::SSL
@@ -76,17 +89,4 @@ target_include_directories(kadedb_core
         $<INSTALL_INTERFACE:include>
 )
 
-# Installation
-install(TARGETS kadedb_core
-    EXPORT KadeDBTargets
-    RUNTIME DESTINATION bin
-    LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib
-    PUBLIC_HEADER DESTINATION include/kadedb
-)
-
-# Install headers
-install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/kadedb/
-    DESTINATION include/kadedb
-    FILES_MATCHING PATTERN "*.h"
-)
+# Note: Installation is handled by the main CMakeLists.txt

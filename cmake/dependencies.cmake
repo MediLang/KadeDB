@@ -41,16 +41,45 @@ endif()
 
 # Find or download RocksDB
 if(USE_SYSTEM_DEPS)
-  find_package(RocksDB ${KADEDB_ROCKSDB_VERSION} QUIET)
-  if(NOT RocksDB_FOUND)
-    message(STATUS "System RocksDB not found, using bundled version")
-    set(USE_SYSTEM_ROCKSDB OFF)
-  else()
-    set(USE_SYSTEM_ROCKSDB ON)
-    message(STATUS "Found RocksDB: ${ROCKSDB_LIBRARIES}")
+  # First try using pkg-config
+  find_package(PkgConfig QUIET)
+  if(PKG_CONFIG_FOUND)
+    pkg_check_modules(PC_ROCKSDB QUIET rocksdb)
+    if(PC_ROCKSDB_FOUND)
+      message(STATUS "Found RocksDB via pkg-config: ${PC_ROCKSDB_LIBRARIES}")
+      set(ROCKSDB_LIBRARIES ${PC_ROCKSDB_LINK_LIBRARIES})
+      set(ROCKSDB_INCLUDE_DIRS ${PC_ROCKSDB_INCLUDE_DIRS})
+      set(ROCKSDB_VERSION ${PC_ROCKSDB_VERSION})
+      set(USE_SYSTEM_ROCKSDB ON)
+      
+      # Create imported target if it doesn't exist
+      if(NOT TARGET RocksDB::RocksDB)
+        add_library(RocksDB::RocksDB INTERFACE IMPORTED)
+        set_target_properties(RocksDB::RocksDB PROPERTIES
+          INTERFACE_LINK_LIBRARIES "${ROCKSDB_LIBRARIES}"
+          INTERFACE_INCLUDE_DIRECTORIES "${ROCKSDB_INCLUDE_DIRS}"
+        )
+      endif()
+    endif()
+  endif()
+  
+  # If pkg-config failed, try find_package
+  if(NOT ROCKSDB_LIBRARIES)
+    find_package(RocksDB ${KADEDB_ROCKSDB_VERSION} QUIET)
+    if(RocksDB_FOUND)
+      message(STATUS "Found RocksDB: ${RocksDB_LIBRARIES}")
+      set(ROCKSDB_LIBRARIES ${RocksDB_LIBRARIES})
+      set(ROCKSDB_INCLUDE_DIRS ${RocksDB_INCLUDE_DIRS})
+      set(ROCKSDB_VERSION ${RocksDB_VERSION})
+      set(USE_SYSTEM_ROCKSDB ON)
+    else()
+      message(STATUS "System RocksDB not found, using bundled version")
+      set(USE_SYSTEM_ROCKSDB OFF)
+    endif()
   endif()
 else()
   set(USE_SYSTEM_ROCKSDB OFF)
+  message(STATUS "Using bundled RocksDB (system libraries disabled)")
 endif()
 
 if(NOT USE_SYSTEM_ROCKSDB)
@@ -67,6 +96,15 @@ if(NOT USE_SYSTEM_ROCKSDB)
   set(WITH_TOOLS OFF CACHE BOOL "" FORCE)
   set(WITH_BENCHMARK_TOOLS OFF CACHE BOOL "" FORCE)
   set(FAIL_ON_WARNINGS OFF CACHE BOOL "" FORCE)
+  set(WITH_BZ2 OFF CACHE BOOL "" FORCE)
+  set(WITH_LIBURING OFF CACHE BOOL "" FORCE)
+  set(WITH_NUMA OFF CACHE BOOL "" FORCE)
+  set(WITH_TBB OFF CACHE BOOL "" FORCE)
+  set(WITH_XPRESS OFF CACHE BOOL "" FORCE)
+  set(WITH_JNI OFF CACHE BOOL "" FORCE)
+  set(WITH_BENCHMARK OFF CACHE BOOL "" FORCE)
+  set(WITH_CORE_TOOLS OFF CACHE BOOL "" FORCE)
+  set(WITH_FOLLY_DISTRIBUTED_MUTEX OFF CACHE BOOL "" FORCE)
   
   # Download and build RocksDB
   FetchContent_Declare(
@@ -79,30 +117,54 @@ if(NOT USE_SYSTEM_ROCKSDB)
   # Only populate if not already populated
   FetchContent_GetProperties(rocksdb)
   if(NOT rocksdb_POPULATED)
+    message(STATUS "Downloading and building RocksDB ${KADEDB_ROCKSDB_VERSION}...")
     FetchContent_Populate(rocksdb)
+    
+    # Create a CMakeLists.txt file if it doesn't exist
+    if(NOT EXISTS "${rocksdb_SOURCE_DIR}/CMakeLists.txt")
+      file(WRITE "${rocksdb_SOURCE_DIR}/CMakeLists.txt" 
+        "cmake_minimum_required(VERSION 3.10)\n"
+        "project(rocksdb VERSION ${KADEDB_ROCKSDB_VERSION} LANGUAGES C CXX ASM)\n\n"
+        "option(WITH_TESTS \"Build tests\" OFF)\n"
+        "option(WITH_TOOLS \"Build tools\" OFF)\n"
+        "option(WITH_BENCHMARK_TOOLS \"Build benchmark tools\" OFF)\n"
+        "option(FAIL_ON_WARNINGS \"Fail on compiler warnings\" OFF)\n"
+        "add_subdirectory(${rocksdb_SOURCE_DIR})\n"
+      )
+    endif()
+    
     # Don't build tests or tools
     add_subdirectory(${rocksdb_SOURCE_DIR} ${rocksdb_BINARY_DIR} EXCLUDE_FROM_ALL)
   endif()
   
-  set(ROCKSDB_LIBRARIES rocksdb)
+  # Set the library names based on build type
+  if(WIN32)
+    set(ROCKSDB_LIBRARIES ${rocksdb_BINARY_DIR}/rocksdb.lib)
+  else()
+    set(ROCKSDB_LIBRARIES ${rocksdb_BINARY_DIR}/librocksdb.a)
+  endif()
+  
   set(ROCKSDB_INCLUDE_DIRS ${rocksdb_SOURCE_DIR}/include)
   
   # Create an imported target for RocksDB
   if(NOT TARGET RocksDB::RocksDB)
-    add_library(RocksDB::RocksDB UNKNOWN IMPORTED)
+    add_library(RocksDB::RocksDB STATIC IMPORTED)
     set_target_properties(RocksDB::RocksDB PROPERTIES
       IMPORTED_LOCATION ${ROCKSDB_LIBRARIES}
       INTERFACE_INCLUDE_DIRECTORIES "${ROCKSDB_INCLUDE_DIRS}"
     )
-  endif()
-  
-  # Add system libraries that RocksDB depends on
-  if(UNIX)
-    find_package(Threads REQUIRED)
-    set_property(TARGET RocksDB::RocksDB APPEND PROPERTY
-      INTERFACE_LINK_LIBRARIES "Threads::Threads"
-    )
     
+    # Add system libraries that RocksDB depends on
+    if(UNIX)
+      find_package(Threads REQUIRED)
+      target_link_libraries(RocksDB::RocksDB INTERFACE 
+        ${CMAKE_THREAD_LIBS_INIT}
+        ${CMAKE_DL_LIBS}
+      )
+      set_property(TARGET RocksDB::RocksDB APPEND PROPERTY
+        INTERFACE_LINK_LIBRARIES "Threads::Threads"
+      )
+    endif()
     if(CMAKE_DL_LIBS)
       set_property(TARGET RocksDB::RocksDB APPEND PROPERTY
         INTERFACE_LINK_LIBRARIES ${CMAKE_DL_LIBS}

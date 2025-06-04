@@ -13,8 +13,10 @@ add_subdirectory(unit)
 # Add integration tests subdirectory
 add_subdirectory(integration)
 
-# Add benchmark tests subdirectory
-add_subdirectory(benchmark)
+# Add benchmark tests subdirectory if enabled
+if(BUILD_BENCHMARKS)
+    add_subdirectory(benchmark)
+endif()
 
 # Function to add a test
 function(add_kadedb_test test_name)

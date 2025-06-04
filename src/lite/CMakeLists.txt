@@ -25,6 +25,11 @@ target_compile_definitions(kadedb-lite
         KADEDB_LITE=1
 )
 
+# Define source files for the lite executable
+set(LITE_SOURCES
+    src/main.c
+)
+
 # Add KadeDB-Lite executable
 add_executable(kadedb-lite_exe ${LITE_SOURCES})
 

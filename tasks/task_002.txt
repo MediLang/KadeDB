@@ -80,7 +80,7 @@ private:
 ### Details:
 Implement the FileManager class with methods for creating, opening, and closing database files. Define the file header structure with metadata including version, creation timestamp, and page size. Implement methods for reading and writing pages at specific offsets. The file format should support a page directory to track allocated pages and their types. Use memory-mapped files if possible for performance.
 
-## 2. Develop Page Management System [pending]
+## 2. Develop Page Management System [in-progress]
 ### Dependencies: 2.1
 ### Description: Implement the page abstraction with fixed-size allocation, different page types (data, index, overflow), page headers, and free space management.
 ### Details:
@@ -103,50 +103,4 @@ Define LogRecord structure with operation type, affected page, before/after imag
 ### Description: Connect all components through the StorageManager class and implement recovery procedures using the WAL.
 ### Details:
 Implement StorageManager as the main interface for storage operations. Connect BufferPool, FileManager, and WALManager. Implement recovery procedures using ARIES algorithm: analysis, redo, and undo phases. Add system startup and shutdown procedures that handle recovery and ensure data consistency. Implement transaction begin/commit/abort operations that coordinate with the WAL. Add configuration options for tuning performance parameters.
-
-## 6. Implement File Manager with Custom Format [done]
-### Dependencies: None
-### Description: Design and implement the FileManager class that handles the storage file format, including header structure, page-based organization, and versioning support.
-### Details:
-1. Create a FileManager class that manages file I/O operations
-2. Implement file creation with proper header structure containing metadata (database version, page size, creation timestamp)
-3. Develop methods for reading and writing pages to/from disk
-4. Implement page allocation tracking using a bitmap or free list
-5. Add versioning support to allow for future format changes
-6. Create utility functions for file backup and validation
-
-## 7. Develop Page Management System [pending]
-### Dependencies: 2.6
-### Description: Implement the page management system with fixed-size page allocation, different page types, page header structure, and free space management.
-### Details:
-1. Define page structure with headers containing metadata (page ID, type, checksum, free space pointer)
-2. Implement different page types (data, index, overflow) with appropriate layouts
-3. Create a PageFactory class to instantiate different page types
-4. Develop free space management within pages using slot arrays or similar techniques
-5. Implement page splitting and merging logic
-6. Add page validation and error detection mechanisms
-
-## 8. Implement Buffer Pool with Caching [pending]
-### Dependencies: 2.7
-### Description: Create the BufferPool class with LRU eviction policy, dirty page tracking, thread-safe page access, and configurable memory limits.
-### Details:
-1. Implement the BufferPool class with a fixed number of frames
-2. Create an LRU eviction policy using a doubly-linked list and hash map for O(1) operations
-3. Add dirty page tracking to identify pages that need to be written back to disk
-4. Implement thread-safe access using mutex locks or reader-writer locks
-5. Add configurable memory limits and monitoring
-6. Implement page pinning/unpinning to prevent eviction of in-use pages
-7. Create statistics tracking for cache hits/misses
-
-## 9. Develop Write-Ahead Logging (WAL) [pending]
-### Dependencies: 2.8
-### Description: Implement the WALManager class with log record format, transaction markers, checkpoint mechanism, and recovery procedures.
-### Details:
-1. Design log record format with operation type, affected page ID, before/after images, and transaction ID
-2. Implement log appending with atomic writes and sequential LSN assignment
-3. Create transaction begin/commit/abort markers in the log
-4. Develop checkpoint mechanism to periodically flush dirty pages
-5. Implement recovery procedures using the log (redo and undo operations)
-6. Add log truncation to manage log size
-7. Create tools for log inspection and analysis
 

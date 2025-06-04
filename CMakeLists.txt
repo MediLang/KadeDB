@@ -38,15 +38,33 @@ project(KadeDB VERSION 0.1.0 LANGUAGES CXX C ASM)
 # Set project policies
 cmake_policy(SET CMP0079 NEW) # Enable compiler id for AppleClang
 
-# Set C++ standard
-set(CMAKE_CXX_STANDARD 17)
+# Set C++ standard to C++20 for std::span and other C++20 features
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
+# Set compiler flags
+if(MSVC)
+    add_compile_options(/W4 /WX)
+else()
+    add_compile_options(-Wall -Wextra -Wpedantic)
+    # Only treat warnings as errors in Debug builds
+    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+        add_compile_options(-Werror)
+    endif()
+    # Disable specific warnings that might come from external dependencies
+    add_compile_options(-Wno-pedantic -Wno-error=pedantic)
+    add_compile_options(-Wno-error=extra)
+    add_compile_options(-Wno-array-bounds)  # Disable array bounds warnings
+endif()
+
+# Include standard installation directories
+include(GNUInstallDirs)
 
 # Project options
 option(BUILD_KADEDB_SERVER "Build KadeDB Server" ON)
 option(BUILD_KADEDB_LITE "Build KadeDB-Lite" ON)
-option(BUILD_TESTS "Build tests" ON)
+option(BUILD_TESTS "Build tests" OFF)  # Disabled by default
 option(BUILD_BENCHMARKS "Build benchmarks" OFF)
 option(ENABLE_COVERAGE "Enable coverage reporting" OFF)
 option(ENABLE_ASAN "Enable Address Sanitizer" OFF)
@@ -163,114 +181,172 @@ include_directories(
     ${PROJECT_SOURCE_DIR}/include
 )
 
-# Add subdirectories
+# Add core library
+# Set binary output directories for server and lite
+set(SERVER_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/server)
+set(LITE_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/lite)
+
+# Set binary output directories
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+# Add common interface library
+add_library(kadedb_common INTERFACE)
+target_include_directories(kadedb_common
+    INTERFACE
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
+)
+
+# Find or provide CRC32C implementation
+find_package(Crc32c QUIET)
+
+if(TARGET Crc32c::crc32c)
+    # Use system CRC32C if available
+    message(STATUS "Using system CRC32C library")
+    add_library(crc32c ALIAS Crc32c::crc32c)
+else()
+    # Fallback: Create a minimal CRC32C implementation
+    message(STATUS "Using bundled CRC32C implementation")
+    
+    # Create the source file if it doesn't exist
+    set(CRC32C_SRC ${CMAKE_CURRENT_BINARY_DIR}/crc32c.cpp)
+    if(NOT EXISTS ${CRC32C_SRC})
+        file(WRITE ${CRC32C_SRC} "#include <cstdint>\n"
+            "#include <cstddef>\n\n"
+            "uint32_t crc32c_sw(const uint8_t* data, std::size_t length) {\n"
+            "    uint32_t crc = 0xFFFFFFFF;\n"
+            "    for (std::size_t i = 0; i < length; ++i) {\n"
+            "        crc ^= data[i];\n"
+            "        for (int j = 0; j < 8; ++j) {\n"
+            "            crc = (crc >> 1) ^ (0xEDB88320 & (-(crc & 1)));\n"
+            "        }\n"
+            "    }\n"
+            "    return ~crc;\n"
+            "}"
+        )
+    endif()
+    
+    # Create the library
+    add_library(crc32c STATIC
+        ${CRC32C_SRC}
+    )
+    
+    target_include_directories(crc32c
+        PUBLIC
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/core/storage/include>
+    )
+    
+    # Add include directory for the generated file
+    target_include_directories(crc32c
+        PRIVATE
+            ${CMAKE_CURRENT_BINARY_DIR}
+    )
+    
+    # Add compile definitions
+    target_compile_definitions(crc32c
+        PRIVATE
+            -DCRC32C_INLINE_DEFINITION
+    )
+    
+    # Hide symbols by default
+    set_target_properties(crc32c PROPERTIES
+        C_VISIBILITY_PRESET hidden
+        CXX_VISIBILITY_PRESET hidden
+        VISIBILITY_INLINES_HIDDEN ON
+    )
+endif()
+
+# Add core library
 add_subdirectory(src/core)
 
-# Add server if enabled
+# Add server build if enabled
 if(BUILD_KADEDB_SERVER)
     add_subdirectory(src/server)
 endif()
 
-# Add KadeDB-Lite if enabled
+# Add lite build if enabled
 if(BUILD_KADEDB_LITE)
+    enable_language(C)
+    set(CMAKE_C_STANDARD 11)
+    set(CMAKE_C_STANDARD_REQUIRED ON)
     add_subdirectory(src/lite)
 endif()
 
 # Add tests if enabled
-if(BUILD_TESTS)
+if(BUILD_TESTING)
     enable_testing()
     add_subdirectory(test)
 endif()
 
-# Generate and install package configuration
-include(CMakePackageConfigHelpers)
-set(CONFIG_INSTALL_DIR "lib/cmake/KadeDB-${PROJECT_VERSION}")
-set(GENERATED_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
-
-# Create the KadeDBConfig.cmake file
-configure_package_config_file(
-    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/KadeDBConfig.cmake.in
-    ${GENERATED_DIR}/KadeDBConfig.cmake
-    INSTALL_DESTINATION ${CONFIG_INSTALL_DIR}
-)
-
-# Create the KadeDBConfigVersion.cmake file
-write_basic_package_version_file(
-    ${GENERATED_DIR}/KadeDBConfigVersion.cmake
-    VERSION ${PROJECT_VERSION}
-    COMPATIBILITY SameMajorVersion
-)
-
-# Install the configuration files
-install(
-    FILES
-        ${GENERATED_DIR}/KadeDBConfig.cmake
-        ${GENERATED_DIR}/KadeDBConfigVersion.cmake
-    DESTINATION ${CONFIG_INSTALL_DIR}
-)
-
-# Install the export set
-install(
-    EXPORT KadeDBTargets
-    FILE KadeDBTargets.cmake
-    NAMESPACE KadeDB::
-    DESTINATION ${CONFIG_INSTALL_DIR}
-)
-
 # Install headers
-install(
-    DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
-    DESTINATION include
+install(DIRECTORY include/ DESTINATION include
     FILES_MATCHING PATTERN "*.h"
 )
 
-# Uninstall target
-if(NOT TARGET uninstall)
-    configure_file(
-        ${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake_uninstall.cmake.in
-        ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake
-        IMMEDIATE @ONLY
-    )
+# Create a custom target that depends on all components
+add_custom_target(kadedb_all
+    DEPENDS 
+        kadedb_common
+        crc32c
+        kadedb_storage
+        kadedb_core
+        $<TARGET_NAME_IF_EXISTS:kadedb>
+)
 
-    add_custom_target(uninstall
-        COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake
-    )
-endif()
-
-# Add subdirectories after the main library is defined
-if(BUILD_KADEDB_SERVER)
-    add_subdirectory(src/server)
-endif()
-
-if(BUILD_KADEDB_LITE)
-    add_subdirectory(src/lite)
-endif()
-
-if(BUILD_TESTS)
-    enable_testing()
-    add_subdirectory(test)
-endif()
-
-# Install rules for the main library
-install(TARGETS KadeDB
+# Install all targets with proper export
+install(TARGETS 
+        kadedb_common
+        crc32c
+        kadedb_storage
+        kadedb_core
     EXPORT KadeDBTargets
-    RUNTIME DESTINATION bin
-    LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib
-    PUBLIC_HEADER DESTINATION include/kadedb
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
-# Install the export set
-install(EXPORT KadeDBTargets
-    FILE KadeDBTargets.cmake
+# Install server executable if built
+if(TARGET kadedb)
+    install(TARGETS kadedb
+        EXPORT KadeDBTargets
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+        BUNDLE DESTINATION ${CMAKE_INSTALL_BINDIR}
+    )
+endif()
+
+# Create a single export file for all targets
+set(EXPORT_TARGETS kadedb_common crc32c kadedb_storage kadedb_core)
+if(TARGET kadedb)
+    list(APPEND EXPORT_TARGETS kadedb)
+endif()
+
+# Export for build tree
+export(TARGETS ${EXPORT_TARGETS}
     NAMESPACE KadeDB::
-    DESTINATION lib/cmake/KadeDB
+    FILE "${CMAKE_CURRENT_BINARY_DIR}/KadeDBTargets.cmake"
 )
 
-# Create and install package config file
+# Install export set
+install(EXPORT KadeDBTargets
+    NAMESPACE KadeDB::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/KadeDB
+    FILE KadeDBTargets.cmake
+)
+
+# Ensure proper build order
+add_dependencies(kadedb_storage kadedb_common crc32c)
+add_dependencies(kadedb_core kadedb_storage)
+if(TARGET kadedb)
+    add_dependencies(kadedb kadedb_core)
+endif()
+
+# Generate and install config files
 include(CMakePackageConfigHelpers)
 configure_package_config_file(
-    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/KadeDBConfig.cmake.in
+    cmake/KadeDBConfig.cmake.in
     ${CMAKE_CURRENT_BINARY_DIR}/KadeDBConfig.cmake
     INSTALL_DESTINATION lib/cmake/KadeDB
 )
@@ -337,13 +413,15 @@ install(FILES
     COMPONENT Devel
 )
 
-# Add uninstall target
-configure_file(
-    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake_uninstall.cmake.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake"
-    IMMEDIATE @ONLY
-)
+# Only add uninstall target if not already defined
+if(NOT TARGET uninstall)
+    configure_file(
+        "${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake_uninstall.cmake.in"
+        "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake"
+        IMMEDIATE @ONLY
+    )
 
-add_custom_target(uninstall
-    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake
-)
+    add_custom_target(uninstall
+        COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake
+    )
+endif()

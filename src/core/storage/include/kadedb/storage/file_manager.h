@@ -22,7 +22,7 @@ class FileHandle;
 class FileManager {
 public:
     static constexpr uint32_t DEFAULT_PAGE_SIZE = 4096;  // 4KB pages by default
-    static constexpr char* FILE_SIGNATURE = "KADEDB";
+    static constexpr const char FILE_SIGNATURE[7] = "KADEDB";
     static constexpr uint16_t CURRENT_VERSION = 1;
 
     /**

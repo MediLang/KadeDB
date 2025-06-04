@@ -1,6 +1,7 @@
 # Add test executable
 add_executable(storage_tests
     file_manager_test.cpp
+    page_manager_test.cpp
 )
 
 # Link with GTest and our storage library
@@ -8,6 +9,7 @@ target_link_libraries(storage_tests
     PRIVATE
         GTest::GTest
         GTest::Main
+        kadedb_storage
         ${TEST_LIBRARIES}
 )
 
