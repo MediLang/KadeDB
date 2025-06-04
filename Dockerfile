@@ -1,5 +1,5 @@
 # Build stage
-FROM ubuntu:22.04 as builder
+FROM ubuntu:24.04 as builder
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y \
@@ -28,7 +28,7 @@ RUN mkdir -p build && \
     cmake --build . --target install -- -j$(nproc)
 
 # Runtime image
-FROM ubuntu:22.04
+FROM ubuntu:24.04
 
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y \
