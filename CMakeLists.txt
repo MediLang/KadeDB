@@ -46,7 +46,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Project options
 option(BUILD_KADEDB_SERVER "Build KadeDB Server" ON)
 option(BUILD_KADEDB_LITE "Build KadeDB-Lite" ON)
-option(BUILD_TESTS "Build tests" OFF)
+option(BUILD_TESTS "Build tests" ON)
 option(BUILD_BENCHMARKS "Build benchmarks" OFF)
 option(ENABLE_COVERAGE "Enable coverage reporting" OFF)
 option(ENABLE_ASAN "Enable Address Sanitizer" OFF)

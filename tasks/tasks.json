@@ -8,7 +8,7 @@
       "testStrategy": "1. Verify successful build on all target platforms (Linux, macOS, Windows)\n2. Confirm cross-compilation for ARM Cortex-M4 targets\n3. Validate dependency resolution and linking\n4. Test CI/CD pipeline with sample commits\n5. Verify documentation accuracy with team review",
       "priority": "high",
       "dependencies": [],
-      "status": "in-progress",
+      "status": "done",
       "subtasks": [
         {
           "id": 1,
@@ -78,8 +78,105 @@
       "dependencies": [
         1
       ],
-      "status": "pending",
-      "subtasks": []
+      "status": "in-progress",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Implement File Manager with Custom Format",
+          "description": "Create the FileManager class that handles low-level file operations, implements the custom storage format with metadata headers, page-based organization, and versioning support.",
+          "dependencies": [],
+          "details": "Implement the FileManager class with methods for creating, opening, and closing database files. Define the file header structure with metadata including version, creation timestamp, and page size. Implement methods for reading and writing pages at specific offsets. The file format should support a page directory to track allocated pages and their types. Use memory-mapped files if possible for performance.",
+          "status": "done",
+          "testStrategy": "Create unit tests that verify file creation, header reading/writing, and page allocation. Test version compatibility and file integrity checks. Use mock filesystem for isolation."
+        },
+        {
+          "id": 2,
+          "title": "Develop Page Management System",
+          "description": "Implement the page abstraction with fixed-size allocation, different page types (data, index, overflow), page headers, and free space management.",
+          "dependencies": [
+            1
+          ],
+          "details": "Create Page and PageId classes to represent database pages. Implement page header structure with type, LSN, checksum, and free space tracking. Add methods for serializing/deserializing page content. Implement free space management within pages using slot-based approach or free space pointers. Add utility functions for page splitting and merging. Extend FileManager to track free pages for reallocation.",
+          "status": "pending",
+          "testStrategy": "Test page allocation, deallocation, and reuse. Verify correct handling of different page types. Test free space management with various insertion and deletion patterns."
+        },
+        {
+          "id": 3,
+          "title": "Build Buffer Pool with Caching",
+          "description": "Implement the BufferPool class that provides memory caching of pages with LRU eviction policy, dirty page tracking, and thread-safe access.",
+          "dependencies": [
+            2
+          ],
+          "details": "Create Frame class to represent a page in memory. Implement LRU eviction using a doubly-linked list and hash map for O(1) operations. Add thread synchronization using mutexes or reader-writer locks for concurrent access. Implement dirty page tracking to identify pages that need to be written back to disk. Add configurable memory limits and eviction policies. Implement pin/unpin mechanism to prevent eviction of in-use pages.",
+          "status": "pending",
+          "testStrategy": "Test concurrent access patterns with multiple threads. Verify LRU eviction works correctly under memory pressure. Test dirty page tracking and writeback. Measure cache hit rates under various workloads."
+        },
+        {
+          "id": 4,
+          "title": "Implement Write-Ahead Logging (WAL)",
+          "description": "Create the WALManager class that handles transaction logging with log record formats, transaction markers, and checkpoint mechanisms.",
+          "dependencies": [
+            1
+          ],
+          "details": "Define LogRecord structure with operation type, affected page, before/after images, and transaction ID. Implement WALManager with methods to append log records and assign LSNs. Create checkpoint mechanism to periodically flush dirty pages and record system state. Implement log file management with rotation and archiving. Add methods to iterate through log records for recovery operations.",
+          "status": "pending",
+          "testStrategy": "Test log record creation and retrieval. Verify checkpoint creation and log truncation. Test log file rotation and size management. Ensure LSNs are monotonically increasing."
+        },
+        {
+          "id": 5,
+          "title": "Integrate Components and Implement Recovery",
+          "description": "Connect all components through the StorageManager class and implement recovery procedures using the WAL.",
+          "dependencies": [
+            3,
+            4
+          ],
+          "details": "Implement StorageManager as the main interface for storage operations. Connect BufferPool, FileManager, and WALManager. Implement recovery procedures using ARIES algorithm: analysis, redo, and undo phases. Add system startup and shutdown procedures that handle recovery and ensure data consistency. Implement transaction begin/commit/abort operations that coordinate with the WAL. Add configuration options for tuning performance parameters.",
+          "status": "pending",
+          "testStrategy": "Test system recovery after simulated crashes. Verify data consistency after recovery. Test transaction atomicity and durability. Perform stress testing with concurrent transactions and unexpected shutdowns."
+        },
+        {
+          "id": 6,
+          "title": "Implement File Manager with Custom Format",
+          "description": "Design and implement the FileManager class that handles the storage file format, including header structure, page-based organization, and versioning support.",
+          "dependencies": [],
+          "details": "1. Create a FileManager class that manages file I/O operations\n2. Implement file creation with proper header structure containing metadata (database version, page size, creation timestamp)\n3. Develop methods for reading and writing pages to/from disk\n4. Implement page allocation tracking using a bitmap or free list\n5. Add versioning support to allow for future format changes\n6. Create utility functions for file backup and validation",
+          "status": "done",
+          "testStrategy": "Write unit tests that verify file creation, reading/writing pages at different offsets, header validation, and version compatibility checks."
+        },
+        {
+          "id": 7,
+          "title": "Develop Page Management System",
+          "description": "Implement the page management system with fixed-size page allocation, different page types, page header structure, and free space management.",
+          "dependencies": [
+            6
+          ],
+          "details": "1. Define page structure with headers containing metadata (page ID, type, checksum, free space pointer)\n2. Implement different page types (data, index, overflow) with appropriate layouts\n3. Create a PageFactory class to instantiate different page types\n4. Develop free space management within pages using slot arrays or similar techniques\n5. Implement page splitting and merging logic\n6. Add page validation and error detection mechanisms",
+          "status": "pending",
+          "testStrategy": "Create tests for page allocation, different page type instantiation, free space management, and page validation. Test edge cases like full pages and minimum free space scenarios."
+        },
+        {
+          "id": 8,
+          "title": "Implement Buffer Pool with Caching",
+          "description": "Create the BufferPool class with LRU eviction policy, dirty page tracking, thread-safe page access, and configurable memory limits.",
+          "dependencies": [
+            7
+          ],
+          "details": "1. Implement the BufferPool class with a fixed number of frames\n2. Create an LRU eviction policy using a doubly-linked list and hash map for O(1) operations\n3. Add dirty page tracking to identify pages that need to be written back to disk\n4. Implement thread-safe access using mutex locks or reader-writer locks\n5. Add configurable memory limits and monitoring\n6. Implement page pinning/unpinning to prevent eviction of in-use pages\n7. Create statistics tracking for cache hits/misses",
+          "status": "pending",
+          "testStrategy": "Test concurrent access patterns, eviction under memory pressure, dirty page writeback, and hit/miss ratios. Use stress tests to verify thread safety."
+        },
+        {
+          "id": 9,
+          "title": "Develop Write-Ahead Logging (WAL)",
+          "description": "Implement the WALManager class with log record format, transaction markers, checkpoint mechanism, and recovery procedures.",
+          "dependencies": [
+            8
+          ],
+          "details": "1. Design log record format with operation type, affected page ID, before/after images, and transaction ID\n2. Implement log appending with atomic writes and sequential LSN assignment\n3. Create transaction begin/commit/abort markers in the log\n4. Develop checkpoint mechanism to periodically flush dirty pages\n5. Implement recovery procedures using the log (redo and undo operations)\n6. Add log truncation to manage log size\n7. Create tools for log inspection and analysis",
+          "status": "pending",
+          "testStrategy": "Test log record creation, transaction logging, checkpoint operations, and recovery scenarios. Simulate crashes at different points to verify recovery correctness."
+        }
+      ]
     },
     {
       "id": 3,

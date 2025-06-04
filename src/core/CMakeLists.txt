@@ -1,5 +1,8 @@
 # Core Database Library
 
+# Add storage subdirectory
+add_subdirectory(storage)
+
 # Define the core library target
 add_library(kadedb_core
     kadedb.cpp
@@ -13,6 +16,12 @@ set_target_properties(kadedb_core PROPERTIES
     CXX_STANDARD 17
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
+)
+
+# Link core library to storage library
+target_link_libraries(kadedb_core
+    PRIVATE
+        kadedb_storage
 )
 
 # Set include directories
