@@ -69,7 +69,7 @@ endif()
 6. Configure build output directories
 7. Add cross-compilation support for ARM Cortex-M targets
 
-## 3. Implement CI/CD Pipeline Configuration [pending]
+## 3. Implement CI/CD Pipeline Configuration [in-progress]
 ### Dependencies: 1.2
 ### Description: Set up continuous integration and deployment pipeline with automated testing, code quality checks, and build verification.
 ### Details:

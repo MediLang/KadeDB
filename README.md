@@ -1,5 +1,11 @@
 # KadeDB: A Multi-Model Database for Healthcare and Beyond
 
+[![CI/CD Pipeline](https://github.com/MediLang/KadeDB/actions/workflows/ci.yml/badge.svg)](https://github.com/MediLang/KadeDB/actions/workflows/ci.yml)
+[![Code Coverage](https://codecov.io/gh/MediLang/KadeDB/branch/main/graph/badge.svg)](https://codecov.io/gh/MediLang/KadeDB)
+[![Documentation Status](https://readthedocs.org/projects/kadedb/badge/?version=latest)](https://kadedb.readthedocs.io/en/latest/?badge=latest)
+[![Docker Pulls](https://img.shields.io/docker/pulls/medilang/kadedb)](https://hub.docker.com/r/medilang/kadedb)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+
 ## Overview
 
 KadeDB is a versatile multi-model database designed to support a wide range of applications, from healthcare to finance, logistics, manufacturing, smart cities, and scientific research. It unifies:
@@ -134,6 +140,38 @@ By unifying HPC, IoT, and multi-model storage in a single repository, KadeDB:
 2. Ensures compliance
 3. Drives innovation across sectors
    - From precision medicine to smart factories
+## CI/CD Pipeline
+
+KadeDB uses GitHub Actions for continuous integration and deployment. The pipeline includes:
+
+### Build and Test
+- **Platforms**: Linux, macOS, Windows
+- **Compilers**: GCC, Clang, MSVC
+- **Build Types**: Debug, Release, RelWithDebInfo
+- **Static Analysis**: clang-tidy, cppcheck
+- **Code Formatting**: clang-format
+- **Testing**: Unit tests, integration tests, benchmarks
+
+### Code Quality
+- Automated code formatting checks
+- Static code analysis
+- Code coverage reporting
+- Dependency updates (Dependabot)
+
+### Deployment
+- **Docker Images**: Automated builds for all releases
+- **Documentation**: Auto-deployed to GitHub Pages
+- **Packages**: Source and binary packages
+
+### Release Process
+1. Create a version tag (e.g., `v1.0.0`)
+2. Push the tag to trigger the release workflow
+3. The workflow will:
+   - Build and test the code
+   - Create a GitHub release
+   - Build and push Docker images
+   - Publish packages (if configured)
+
 ## Building and Development
 
 For detailed build instructions, dependencies, and development workflow, please see the [BUILD.md](BUILD.md) file.
