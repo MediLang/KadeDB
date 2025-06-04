@@ -1,4 +1,38 @@
 cmake_minimum_required(VERSION 3.14)
+
+# Function to filter sensitive environment variables
+function(filter_sensitive_variables)
+    # List of sensitive variable patterns to filter
+    set(SENSITIVE_VARS
+        "API[_\-]KEY"
+        "SECRET"
+        "TOKEN"
+        "PASSWORD"
+        "AUTH"
+        "CREDENTIAL"
+        "ANTHROPIC"
+        "PERPLEXITY"
+        "OPENAI"
+    )
+    
+    # Get all environment variables
+    execute_process(COMMAND "${CMAKE_COMMAND}" "-E" "environment"
+                    OUTPUT_VARIABLE ENV_VARS)
+    
+    # Filter out sensitive variables
+    foreach(VAR ${SENSITIVE_VARS})
+        string(REGEX REPLACE "${VAR}=[^\n]*\n?" "" ENV_VARS "${ENV_VARS}")
+    endforeach()
+    
+    # Set filtered environment
+    set(ENV{ANTHROPIC_API_KEY} "")
+    set(ENV{PERPLEXITY_API_KEY} "")
+    set(ENV{OPENAI_API_KEY} "")
+endfunction()
+
+# Call the function to filter sensitive variables
+filter_sensitive_variables()
+
 project(KadeDB VERSION 0.1.0 LANGUAGES CXX C ASM)
 
 # Set project policies
@@ -12,15 +46,18 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Project options
 option(BUILD_KADEDB_SERVER "Build KadeDB Server" ON)
 option(BUILD_KADEDB_LITE "Build KadeDB-Lite" ON)
-option(BUILD_TESTS "Build tests" ON)
+option(BUILD_TESTS "Build tests" OFF)
+option(BUILD_BENCHMARKS "Build benchmarks" OFF)
 option(ENABLE_COVERAGE "Enable coverage reporting" OFF)
 option(ENABLE_ASAN "Enable Address Sanitizer" OFF)
 option(ENABLE_UBSAN "Enable Undefined Behavior Sanitizer" OFF)
+option(ENABLE_TSAN "Enable Thread Sanitizer" OFF)
 option(ENABLE_LTO "Enable Link Time Optimization" OFF)
 option(ENABLE_IPO "Enable Interprocedural Optimization" OFF)
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
-option(USE_SYSTEM_ROCKSDB "Use system-installed RocksDB" OFF)
-option(USE_SYSTEM_ANTLR "Use system-installed ANTLR" OFF)
+option(USE_SYSTEM_DEPS "Use system-installed dependencies when available" OFF)
+option(USE_SYSTEM_ROCKSDB "Use system-installed RocksDB" ${USE_SYSTEM_DEPS})
+option(USE_SYSTEM_ANTLR "Use system-installed ANTLR" ${USE_SYSTEM_DEPS})
 
 # Set output directories
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -105,60 +142,102 @@ if(ENABLE_COVERAGE)
     endif()
 endif()
 
-# Find dependencies
-find_package(Threads REQUIRED)
+# Include dependency management
+include(cmake/dependencies.cmake)
 
-# Find OpenSSL
-find_package(OpenSSL REQUIRED)
+# Set project version components
+set(PROJECT_VERSION_MAJOR ${PROJECT_VERSION_MAJOR} CACHE STRING "Major version")
+set(PROJECT_VERSION_MINOR ${PROJECT_VERSION_MINOR} CACHE STRING "Minor version")
+set(PROJECT_VERSION_PATCH ${PROJECT_VERSION_PATCH} CACHE STRING "Patch version")
 
-# Find RocksDB
-if(USE_SYSTEM_ROCKSDB)
-    find_package(RocksDB REQUIRED)
-else()
-    include(FetchContent)
-    FetchContent_Declare(
-        rocksdb
-        GIT_REPOSITORY https://github.com/facebook/rocksdb.git
-        GIT_TAG v8.0.0
-    )
-    set(WITH_GFLAGS OFF CACHE BOOL "" FORCE)
-    set(WITH_JEMALLOC OFF CACHE BOOL "" FORCE)
-    set(WITH_LZ4 OFF CACHE BOOL "" FORCE)
-    set(WITH_SNAPPY OFF CACHE BOOL "" FORCE)
-    set(WITH_ZLIB OFF CACHE BOOL "" FORCE)
-    set(WITH_ZSTD OFF CACHE BOOL "" FORCE)
-    set(WITH_TESTS OFF CACHE BOOL "" FORCE)
-    set(WITH_TOOLS OFF CACHE BOOL "" FORCE)
-    set(WITH_BENCHMARK_TOOLS OFF CACHE BOOL "" FORCE)
-    FetchContent_MakeAvailable(rocksdb)
-    set(ROCKSDB_LIBRARIES rocksdb)
-endif()
-
-# Find ANTLR
-if(USE_SYSTEM_ANTLR)
-    find_package(Antlr4 REQUIRED)
-else()
-    include(FetchContent)
-    FetchContent_Declare(
-        antlr4
-        GIT_REPOSITORY https://github.com/antlr/antlr4.git
-        GIT_TAG 4.9.3
-    )
-    set(ANTLR_BUILD_CPP_TESTS OFF CACHE BOOL "" FORCE)
-    FetchContent_MakeAvailable(antlr4)
-    set(ANTLR4_INCLUDE_DIRS ${antlr4_SOURCE_DIR}/runtime/Cpp/runtime/src)
-    set(ANTLR4_RUNTIME_LIBRARIES antlr4_shared)
-endif()
+# Configure config.h
+configure_file(
+    ${PROJECT_SOURCE_DIR}/include/kadedb/config.h.in
+    ${CMAKE_CURRENT_BINARY_DIR}/include/kadedb/config.h
+    @ONLY
+)
 
 # Add include directories
 include_directories(
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_BINARY_DIR}/include
-    ${OPENSSL_INCLUDE_DIR}
-    ${ANTLR4_INCLUDE_DIRS}
+    ${PROJECT_SOURCE_DIR}/include
 )
 
 # Add subdirectories
+add_subdirectory(src/core)
+
+# Add server if enabled
+if(BUILD_KADEDB_SERVER)
+    add_subdirectory(src/server)
+endif()
+
+# Add KadeDB-Lite if enabled
+if(BUILD_KADEDB_LITE)
+    add_subdirectory(src/lite)
+endif()
+
+# Add tests if enabled
+if(BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(test)
+endif()
+
+# Generate and install package configuration
+include(CMakePackageConfigHelpers)
+set(CONFIG_INSTALL_DIR "lib/cmake/KadeDB-${PROJECT_VERSION}")
+set(GENERATED_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
+
+# Create the KadeDBConfig.cmake file
+configure_package_config_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/KadeDBConfig.cmake.in
+    ${GENERATED_DIR}/KadeDBConfig.cmake
+    INSTALL_DESTINATION ${CONFIG_INSTALL_DIR}
+)
+
+# Create the KadeDBConfigVersion.cmake file
+write_basic_package_version_file(
+    ${GENERATED_DIR}/KadeDBConfigVersion.cmake
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion
+)
+
+# Install the configuration files
+install(
+    FILES
+        ${GENERATED_DIR}/KadeDBConfig.cmake
+        ${GENERATED_DIR}/KadeDBConfigVersion.cmake
+    DESTINATION ${CONFIG_INSTALL_DIR}
+)
+
+# Install the export set
+install(
+    EXPORT KadeDBTargets
+    FILE KadeDBTargets.cmake
+    NAMESPACE KadeDB::
+    DESTINATION ${CONFIG_INSTALL_DIR}
+)
+
+# Install headers
+install(
+    DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
+    DESTINATION include
+    FILES_MATCHING PATTERN "*.h"
+)
+
+# Uninstall target
+if(NOT TARGET uninstall)
+    configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake_uninstall.cmake.in
+        ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake
+        IMMEDIATE @ONLY
+    )
+
+    add_custom_target(uninstall
+        COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake
+    )
+endif()
+
+# Add subdirectories after the main library is defined
 if(BUILD_KADEDB_SERVER)
     add_subdirectory(src/server)
 endif()
@@ -170,6 +249,55 @@ endif()
 if(BUILD_TESTS)
     enable_testing()
     add_subdirectory(test)
+endif()
+
+# Install rules for the main library
+install(TARGETS KadeDB
+    EXPORT KadeDBTargets
+    RUNTIME DESTINATION bin
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+    PUBLIC_HEADER DESTINATION include/kadedb
+)
+
+# Install the export set
+install(EXPORT KadeDBTargets
+    FILE KadeDBTargets.cmake
+    NAMESPACE KadeDB::
+    DESTINATION lib/cmake/KadeDB
+)
+
+# Create and install package config file
+include(CMakePackageConfigHelpers)
+configure_package_config_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/KadeDBConfig.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/KadeDBConfig.cmake
+    INSTALL_DESTINATION lib/cmake/KadeDB
+)
+
+write_basic_package_version_file(
+    ${CMAKE_CURRENT_BINARY_DIR}/KadeDBConfigVersion.cmake
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion
+)
+
+install(FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/KadeDBConfig.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/KadeDBConfigVersion.cmake
+    DESTINATION lib/cmake/KadeDB
+)
+
+# Uninstall target
+if(NOT TARGET uninstall)
+    configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake_uninstall.cmake.in
+        ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake
+        IMMEDIATE @ONLY
+    )
+
+    add_custom_target(uninstall
+        COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake
+    )
 endif()
 
 # Install rules

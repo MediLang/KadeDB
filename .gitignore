@@ -49,6 +49,51 @@ CMakeFiles/
 CMakeCache.txt
 CMakeScripts/
 cmake_install.cmake
+
+# IDE specific files
+.vscode/
+.idea/
+*.code-workspace
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# API keys and secrets
+*_key
+*_token
+*_secret
+*_password
+*_credential
+*_auth
+
+# Local overrides
+local.*
+override.*
+
+# System Files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Coverage reports
+coverage/
+*.gcov
+*.gcda
+*.gcno
+
+# Dependencies
+third_party/
+external/
+
+# Package files
+*.deb
+*.rpm
+*.tar.gz
+*.zip
 install_manifest.txt
 compile_commands.json
 *.xcodeproj

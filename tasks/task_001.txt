@@ -69,7 +69,7 @@ endif()
 6. Configure build output directories
 7. Add cross-compilation support for ARM Cortex-M targets
 
-## 3. Implement CI/CD Pipeline Configuration [in-progress]
+## 3. Implement CI/CD Pipeline Configuration [done]
 ### Dependencies: 1.2
 ### Description: Set up continuous integration and deployment pipeline with automated testing, code quality checks, and build verification.
 ### Details:
@@ -81,7 +81,7 @@ endif()
 6. Set up artifact generation and storage
 7. Add deployment steps for releases
 
-## 4. Configure Dependency Management [pending]
+## 4. Configure Dependency Management [in-progress]
 ### Dependencies: 1.2
 ### Description: Implement a robust dependency management system for third-party libraries including RocksDB, ANTLR, and OpenSSL.
 ### Details:

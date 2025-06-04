@@ -140,6 +140,120 @@ By unifying HPC, IoT, and multi-model storage in a single repository, KadeDB:
 2. Ensures compliance
 3. Drives innovation across sectors
    - From precision medicine to smart factories
+
+## Building from Source
+
+### Prerequisites
+
+- C++17 compatible compiler (GCC 8+, Clang 7+, MSVC 2019+)
+- CMake 3.14 or higher
+- Git
+- [RocksDB](https://github.com/facebook/rocksdb) (6.8.1 or later)
+- [ANTLR4](https://www.antlr.org/) (4.9 or later)
+- [OpenSSL](https://www.openssl.org/) (1.1.1 or later)
+- [Google Test](https://github.com/google/googletest) (for tests, optional)
+- [Google Benchmark](https://github.com/google/benchmark) (for benchmarks, optional)
+
+### Project Structure
+
+```
+KadeDB/
+├── cmake/                 # CMake modules and configuration
+│   ├── Modules/          # Find modules for dependencies
+│   ├── KadeDBConfig.cmake.in  # Package configuration template
+│   └── cmake_uninstall.cmake.in  # Uninstall script template
+├── docs/                  # Documentation
+├── include/               # Public headers
+│   └── kadedb/           # KadeDB public API
+│       ├── core/         # Core database interfaces
+│       ├── storage/      # Storage engine interfaces
+│       └── server/       # Server-specific headers
+├── src/                  # Source code
+│   ├── core/             # Core database implementation
+│   │   ├── storage/      # Storage engines
+│   │   ├── query/        # Query processing
+│   │   └── CMakeLists.txt
+│   ├── server/           # Server implementation
+│   │   ├── http/        # HTTP server
+│   │   ├── api/         # API endpoints
+│   │   └── CMakeLists.txt
+│   └── lite/             # KadeDB-Lite (future)
+├── test/                 # Test suite
+│   ├── unit/            # Unit tests
+│   └── integration/      # Integration tests
+├── CMakeLists.txt        # Main CMake configuration
+└── README.md            # This file
+```
+
+### Build Instructions
+
+```bash
+# Clone the repository
+git clone --recurse-submodules https://github.com/MediLang/KadeDB.git
+cd KadeDB
+
+# Create build directory and configure
+mkdir -p build && cd build
+cmake .. \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX=/usr/local \
+    -DBUILD_SHARED_LIBS=ON \
+    -DBUILD_TESTS=ON
+
+# Build the project
+make -j$(nproc)
+
+# Run tests (if built)
+ctest --output-on-failure
+
+# Install the library and executables
+sudo make install
+
+# To uninstall (if needed)
+sudo make uninstall
+```
+
+#### Build Options
+
+- `-DBUILD_SHARED_LIBS=ON/OFF`: Build shared libraries (default: ON)
+- `-DBUILD_TESTS=ON/OFF`: Build tests (default: OFF)
+- `-DBUILD_BENCHMARKS=ON/OFF`: Build benchmarks (default: OFF)
+- `-DUSE_SYSTEM_DEPS=ON/OFF`: Use system-installed dependencies (default: OFF)
+- `-DCMAKE_BUILD_TYPE=Debug/Release/RelWithDebInfo`: Set build type (default: Debug)
+- `-DCMAKE_INSTALL_PREFIX=/path`: Set installation prefix (default: /usr/local)
+
+### Development Workflow
+
+1. **Clone the repository** with submodules:
+   ```bash
+   git clone --recurse-submodules https://github.com/MediLang/KadeDB.git
+   ```
+
+2. **Build with development tools**:
+   ```bash
+   mkdir -p build && cd build
+   cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON -DENABLE_ASAN=ON
+   make -j$(nproc)
+   ```
+
+3. **Run tests**:
+   ```bash
+   ctest --output-on-failure -j$(nproc)
+   ```
+
+4. **Build documentation**:
+   ```bash
+   make docs
+   ```
+
+### Using as a Dependency
+
+KadeDB provides CMake package configuration files for easy integration into other projects:
+
+```cmake
+find_package(KadeDB REQUIRED)
+target_link_libraries(your_target PRIVATE KadeDB::Core)
+```
 ## CI/CD Pipeline
 
 KadeDB uses GitHub Actions for continuous integration and deployment. The pipeline includes:
@@ -172,32 +286,51 @@ KadeDB uses GitHub Actions for continuous integration and deployment. The pipeli
    - Build and push Docker images
    - Publish packages (if configured)
 
-## Building and Development
-
-For detailed build instructions, dependencies, and development workflow, please see the [BUILD.md](BUILD.md) file.
-
-### Quick Start
-
-```bash
-# Clone the repository
-git clone https://github.com/yourusername/KadeDB.git
-cd KadeDB
-
-# Configure and build
-mkdir -p build && cd build
-cmake ..
-cmake --build . -- -j$(nproc)
+## Key Features
+make -j$(nproc)
 
 # Run tests
 ctest --output-on-failure
+
+# Or use system dependencies (if available)
+cmake .. -DUSE_SYSTEM_DEPS=ON
+make -j$(nproc)
 ```
 
 ### Key Features
 
 - **Cross-platform**: Builds on Linux, macOS, and Windows
-- **Flexible Build Options**: Customize with various CMake options
-- **Development Tools**: Integration with clang-format, clang-tidy, and more
-- **CI/CD**: Automated testing and packaging with GitHub Actions
+- **Flexible Dependency Management**: Supports both system and bundled dependencies
+- **Multiple Build Types**: Supports Debug, Release, RelWithDebInfo, and MinSizeRel
+- **Sanitizers**: Integration with AddressSanitizer, ThreadSanitizer, and UndefinedBehaviorSanitizer
+- **Code Coverage**: Generate coverage reports with `-DENABLE_COVERAGE=ON`
+- **LTO/IPO Support**: Enable optimizations with `-DENABLE_LTO=ON` and `-DENABLE_IPO=ON`
+- **Testing**: Built-in support for Google Test and Google Benchmark
+
+### Dependency Management
+
+KadeDB uses a flexible dependency management system that supports both system-installed and bundled dependencies. By default, it will download and build all required dependencies.
+
+#### Available Options
+
+- `USE_SYSTEM_DEPS`: Use system-installed dependencies when available (default: OFF)
+- `USE_SYSTEM_ROCKSDB`: Use system-installed RocksDB (default: value of USE_SYSTEM_DEPS)
+- `USE_SYSTEM_ANTLR`: Use system-installed ANTLR4 (default: value of USE_SYSTEM_DEPS)
+- `BUILD_TESTS`: Build tests (default: OFF)
+- `BUILD_BENCHMARKS`: Build benchmarks (default: OFF)
+
+#### Version Control
+
+You can specify versions for dependencies:
+
+```bash
+cmake .. \
+  -DKADEDB_ROCKSDB_VERSION=8.0.0 \
+  -DKADEDB_ANTLR_VERSION=4.9.3 \
+  -DKADEDB_OPENSSL_VERSION=1.1.1
+```
+
+For more details, see the [Dependency Management Documentation](cmake/README.md).
 
 ## Repository Structure
 

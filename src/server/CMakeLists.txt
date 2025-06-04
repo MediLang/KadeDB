@@ -1,18 +1,20 @@
 cmake_minimum_required(VERSION 3.14)
 
-# Define the KadeDB server library
-add_library(kadedb
+# Server source files
+set(SERVER_SOURCES
     src/main.cpp
+    # Add other server source files here
 )
 
 # Add server executable
-add_executable(kadedb ${SERVER_SOURCES})
+add_executable(kadedb
+    ${SERVER_SOURCES}
+)
 
 # Set target properties
 set_target_properties(kadedb PROPERTIES
+    OUTPUT_NAME kadedb
     VERSION ${PROJECT_VERSION}
-    SOVERSION ${PROJECT_VERSION_MAJOR}
-    OUTPUT_NAME "kadedb"
     CXX_STANDARD 17
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
@@ -24,16 +26,21 @@ target_compile_features(kadedb PRIVATE cxx_std_17)
 # Include directories
 target_include_directories(kadedb
     PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_CURRENT_BINARY_DIR}
+        ${CMAKE_SOURCE_DIR}/include
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>
 )
 
-# Link libraries
+# Link dependencies
 target_link_libraries(kadedb
     PRIVATE
+        $<BUILD_INTERFACE:kadedb_core>
+        $<INSTALL_INTERFACE:KadeDB::Core>
+        ${CMAKE_THREAD_LIBS_INIT}
+        KadeDB  # Link against the main KadeDB library
         Threads::Threads
         OpenSSL::SSL
         OpenSSL::Crypto

@@ -2,13 +2,20 @@
 
 include(CMakeFindDependencyMacro)
 
-# Find dependencies
-find_dependency(Threads)
+# Find required dependencies
+find_dependency(Threads REQUIRED)
+find_dependency(OpenSSL REQUIRED)
+find_dependency(RocksDB REQUIRED)
+find_dependency(ANTLR4 REQUIRED)
 
 # Import targets
-include("${CMAKE_CURRENT_LIST_DIR}/@PROJECT_NAME@Targets.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/KadeDBTargets.cmake")
 
-# Version check
+# Version information
+set(KadeDB_VERSION @PROJECT_VERSION@)
+set(KadeDB_VERSION_MAJOR @PROJECT_VERSION_MAJOR@)
+set(KadeDB_VERSION_MINOR @PROJECT_VERSION_MINOR@)
+set(KadeDB_VERSION_PATCH @PROJECT_VERSION_PATCH@)
 set(PACKAGE_VERSION @PROJECT_VERSION@)
 
 # Check if the requested version is compatible
@@ -18,6 +25,21 @@ else()
   set(PACKAGE_VERSION_COMPATIBLE TRUE)
   if("${PACKAGE_FIND_VERSION}" STREQUAL "${PACKAGE_VERSION}")
     set(PACKAGE_VERSION_EXACT TRUE)
+  endif()
+
+  # Check that the target exists
+  if(NOT TARGET KadeDB::Core)
+    if(NOT KadeDB_FIND_QUIETLY)
+      message(WARNING "KadeDB::Core target not found in KadeDB package")
+    endif()
+    return()
+  endif()
+
+  # Provide legacy variables for backward compatibility
+  get_target_property(KadeDB_INCLUDE_DIRS KadeDB::Core INTERFACE_INCLUDE_DIRECTORIES)
+  get_target_property(KadeDB_LIBRARIES KadeDB::Core IMPORTED_LOCATION_RELEASE)
+  if(NOT KadeDB_LIBRARIES)
+    get_target_property(KadeDB_LIBRARIES KadeDB::Core IMPORTED_LOCATION_DEBUG)
   endif()
 endif()
 
