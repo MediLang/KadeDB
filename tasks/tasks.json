@@ -49,7 +49,7 @@
             2
           ],
           "details": "1. Create a dependency management script using CMake's FetchContent or ExternalProject\n2. Configure version pinning for each dependency\n3. Add options for using system-installed dependencies vs. building from source\n4. Set up proper include paths and library linking\n5. Create FindXXX.cmake modules for custom dependency resolution\n6. Document dependency requirements and versions\n7. Handle platform-specific dependency configurations",
-          "status": "in-progress",
+          "status": "done",
           "testStrategy": "Verify dependencies are correctly resolved and linked by building a minimal test program that uses each dependency"
         },
         {
@@ -63,7 +63,7 @@
             4
           ],
           "details": "1. Create CONTRIBUTING.md with development workflow guidelines\n2. Write detailed build instructions for all supported platforms\n3. Document dependency installation requirements\n4. Create a developer setup script for common environments\n5. Document code style guidelines and enforcement tools\n6. Add API documentation structure and generation configuration\n7. Include cross-compilation instructions for embedded targets\n8. Document testing procedures and requirements",
-          "status": "pending",
+          "status": "done",
           "testStrategy": "Have a new contributor follow the documentation to set up the environment and successfully build the project"
         }
       ]

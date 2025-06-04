@@ -81,7 +81,7 @@ endif()
 6. Set up artifact generation and storage
 7. Add deployment steps for releases
 
-## 4. Configure Dependency Management [in-progress]
+## 4. Configure Dependency Management [done]
 ### Dependencies: 1.2
 ### Description: Implement a robust dependency management system for third-party libraries including RocksDB, ANTLR, and OpenSSL.
 ### Details:
@@ -93,7 +93,7 @@ endif()
 6. Document dependency requirements and versions
 7. Handle platform-specific dependency configurations
 
-## 5. Create Development Environment Documentation [pending]
+## 5. Create Development Environment Documentation [done]
 ### Dependencies: 1.1, 1.2, 1.3, 1.4
 ### Description: Prepare comprehensive documentation for setting up the development environment, building the project, and contributing to the codebase.
 ### Details:
