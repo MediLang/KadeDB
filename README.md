@@ -716,4 +716,4 @@ Please see our [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## License
 
-This project is licensed under the **MIT License**, ensuring open access for developers across industries.
+This project is licensed under the [MIT License](./LICENSE), ensuring open access for developers across industries.
