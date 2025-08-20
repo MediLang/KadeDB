@@ -4,7 +4,7 @@
 [![Code Coverage](https://codecov.io/gh/MediLang/KadeDB/branch/main/graph/badge.svg)](https://codecov.io/gh/MediLang/KadeDB)
 [![Documentation Status](https://readthedocs.org/projects/kadedb/badge/?version=latest)](https://kadedb.readthedocs.io/en/latest/?badge=latest)
 [![Docker Pulls](https://img.shields.io/docker/pulls/medilang/kadedb)](https://hub.docker.com/r/medilang/kadedb)
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## Overview
 
@@ -19,11 +19,9 @@ Optimized for high-performance computing (HPC) on servers and edge nodes, KadeDB
 
 ### Components
 
-- **KadeDB**: Built in C++ for top performance, GPU acceleration, and scalability, ideal for compute-intensive analytics and large-scale data management.
-- **KadeDB-Lite**: Built in C for minimal resource usage, targeting IoT devices with a RocksDB-based embedded storage engine and low-bandwidth syncing.
-
-KadeDB: Built in C++ for top performance, GPU acceleration, and scalability, ideal for compute-intensive analytics and large-scale data management.
-KadeDB-Lite: Built in C for minimal resource usage, targeting IoT devices with a RocksDB-based embedded storage engine and low-bandwidth syncing.
+- **KadeDB Core (C++)**: High-performance engine with GPU acceleration and distributed scalability for compute-intensive analytics and storage internals.
+- **KadeDB Services (Rust)**: Secure, async service layer (REST/gRPC), connectors, auth/RBAC, and orchestration built with Rust for memory safety and reliability.
+- **KadeDB-Lite (C)**: Minimal footprint client for IoT/wearables with RocksDB-based embedded storage and low-bandwidth syncing.
 
 ## Supported Use Cases
 
@@ -58,11 +56,12 @@ Modern applications across industries require databases that:
 ### The Gap in Existing Solutions
 
 Existing databases—relational (PostgreSQL), document (MongoDB), time-series (TimescaleDB), and graph (Neo4j)—excel in specific areas but lack unified support for multi-model data, HPC, and IoT. KadeDB addresses this with a single, extensible database, with KadeDB-Lite enabling lightweight IoT deployments.
+
 ## Solution
 
 KadeDB is a multi-model database with two complementary components:
 
-### KadeDB (Server)
+### KadeDB Core (C++)
 - **Language**: C++
 - **Environment**: HPC and edge environments
 - **Storage Types**: Relational, document, time-series, and graph
@@ -71,7 +70,16 @@ KadeDB is a multi-model database with two complementary components:
   - Distributed scaling
   - High-performance computing capabilities
 
-### KadeDB-Lite (Client)
+### KadeDB Services (Rust)
+- **Language**: Rust
+- **Role**: Network services (REST/gRPC), query orchestration, connectors (AMQP/HTTP), auth/RBAC
+- **Features**:
+  - Async I/O (tokio), reliability (clippy/rustfmt), safety across concurrency
+  - Safe FFI to C++ core via C ABI or `cxx` crate
+  - Zero-copy data exchange using Arrow C Data Interface
+
+ 
+### KadeDB-Lite (C)
 - **Language**: C
 - **Target**: IoT devices
 - **Resource Requirements**:
@@ -153,36 +161,35 @@ By unifying HPC, IoT, and multi-model storage in a single repository, KadeDB:
 - [OpenSSL](https://www.openssl.org/) (1.1.1 or later)
 - [Google Test](https://github.com/google/googletest) (for tests, optional)
 - [Google Benchmark](https://github.com/google/benchmark) (for benchmarks, optional)
+- Rust toolchain (stable) with `rustup` and `cargo` (for services)
+- Protobuf compiler `protoc` (optional, for gRPC/tonic services)
 
-### Project Structure
+## Repository Structure
 
 ```
 KadeDB/
-├── cmake/                 # CMake modules and configuration
-│   ├── Modules/          # Find modules for dependencies
-│   ├── KadeDBConfig.cmake.in  # Package configuration template
-│   └── cmake_uninstall.cmake.in  # Uninstall script template
-├── docs/                  # Documentation
-├── include/               # Public headers
-│   └── kadedb/           # KadeDB public API
-│       ├── core/         # Core database interfaces
-│       ├── storage/      # Storage engine interfaces
-│       └── server/       # Server-specific headers
-├── src/                  # Source code
-│   ├── core/             # Core database implementation
-│   │   ├── storage/      # Storage engines
-│   │   ├── query/        # Query processing
-│   │   └── CMakeLists.txt
-│   ├── server/           # Server implementation
-│   │   ├── http/        # HTTP server
-│   │   ├── api/         # API endpoints
-│   │   └── CMakeLists.txt
-│   └── lite/             # KadeDB-Lite (future)
-├── test/                 # Test suite
-│   ├── unit/            # Unit tests
-│   └── integration/      # Integration tests
-├── CMakeLists.txt        # Main CMake configuration
-└── README.md            # This file
+├── cpp/                     # C++ core (engine, kernels, CUDA, public headers)
+│   ├── include/             # Public headers (C++ API + C ABI)
+│   │   └── kadedb/
+│   ├── src/                 # Core engine implementation (storage, query, exec)
+│   ├── cuda/                # GPU kernels / CUDA code (optional)
+│   └── CMakeLists.txt
+├── rust/                    # Rust workspace (services, connectors)
+│   ├── Cargo.toml           # Workspace manifest
+│   ├── services/            # REST/gRPC services, orchestration
+│   └── connectors/          # AMQP/HTTP/OPC UA connectors
+├── lite/                    # KadeDB-Lite (C for IoT)
+│   ├── src/
+│   └── CMakeLists.txt
+├── bindings/                # Language bindings and FFI
+│   ├── c/                   # Stable C ABI headers for the core
+│   └── python/              # pybind11 or PyO3 wrappers
+├── cmake/                   # CMake configs, Find modules, uninstall scripts
+├── docs/                    # Documentation
+├── examples/                # Samples for healthcare and other industries
+├── test/                    # Unit/integration tests (C++ and Rust)
+├── .github/                 # CI/CD pipelines
+└── README.md                # This file
 ```
 
 ### Build Instructions
@@ -200,13 +207,13 @@ cmake .. \
     -DBUILD_SHARED_LIBS=ON \
     -DBUILD_TESTS=ON
 
-# Build the project
+# Build the C++ core
 make -j$(nproc)
 
-# Run tests (if built)
+# Run core tests (if built)
 ctest --output-on-failure
 
-# Install the library and executables
+# Install the core library and executables (optional)
 sudo make install
 
 # To uninstall (if needed)
@@ -222,6 +229,13 @@ sudo make uninstall
 - `-DCMAKE_BUILD_TYPE=Debug/Release/RelWithDebInfo`: Set build type (default: Debug)
 - `-DCMAKE_INSTALL_PREFIX=/path`: Set installation prefix (default: /usr/local)
 
+### Build Orchestration (Top-Level)
+
+- Build the C++ core with CMake/Ninja or Make in `cpp/`.
+- Build Rust services with Cargo in `rust/` (workspace-aware).
+- Build KadeDB-Lite with CMake in `lite/` using the appropriate toolchain file for your target (e.g., ARM).
+- There is no cross-language super-build; keep C++ and Rust build systems independent and join them at the FFI boundary.
+
 ### Development Workflow
 
 1. **Clone the repository** with submodules:
@@ -229,14 +243,14 @@ sudo make uninstall
    git clone --recurse-submodules https://github.com/MediLang/KadeDB.git
    ```
 
-2. **Build with development tools**:
+2. **Build core with development tools**:
    ```bash
    mkdir -p build && cd build
    cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON -DENABLE_ASAN=ON
    make -j$(nproc)
    ```
 
-3. **Run tests**:
+3. **Run core tests**:
    ```bash
    ctest --output-on-failure -j$(nproc)
    ```
@@ -254,17 +268,82 @@ KadeDB provides CMake package configuration files for easy integration into othe
 find_package(KadeDB REQUIRED)
 target_link_libraries(your_target PRIVATE KadeDB::Core)
 ```
+
+## FFI Boundary and Bindings
+
+KadeDB integrates C++ and Rust at a stable boundary via either a C ABI or the `cxx` crate. Public headers live in `cpp/include/kadedb/`, and exported C headers live in `bindings/c/`.
+
+### Option A: C ABI (stable, language-agnostic)
+
+`bindings/c/kadedb.h`:
+```c
+#pragma once
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef struct KadeDBCore KadeDBCore;
+
+KadeDBCore* kadedb_core_new();
+void        kadedb_core_free(KadeDBCore*);
+const char* kadedb_core_version(const KadeDBCore*);
+
+#ifdef __cplusplus
+}
+#endif
+```
+
+Rust (using `bindgen` or hand-written FFI) can call these functions, and any string ownership rules should be documented (e.g., who frees returned strings).
+
+### Option B: cxx crate (safe C++ interop)
+
+Rust (`rust/services/<svc-name>/src/ffi.rs`):
+```rust
+#[cxx::bridge]
+mod ffi {
+    unsafe extern "C++" {
+        include!("kadedb/include/kadedb/core.hpp");
+        type Core;
+        fn version(self: &Core) -> String;
+    }
+
+    extern "Rust" {
+        fn log_message(msg: &str);
+    }
+}
+
+pub fn log_message(msg: &str) {
+    println!("[svc] {msg}");
+}
+```
+
+C++ (`cpp/include/kadedb/core.hpp`):
+```cpp
+#pragma once
+#include <string>
+
+namespace kadedb {
+class Core {
+public:
+  std::string version() const; // e.g., "kadedb-0.1.0"
+};
+}
+```
+
+Keep exported APIs small and stable. Prefer plain-old-data and slices over complex templates across the boundary. For columnar exchange, consider the Arrow C Data Interface.
 ## CI/CD Pipeline
 
 KadeDB uses GitHub Actions for continuous integration and deployment. The pipeline includes:
 
 ### Build and Test
 - **Platforms**: Linux, macOS, Windows
-- **Compilers**: GCC, Clang, MSVC
+- **Compilers**: GCC, Clang, MSVC (C++)
+- **Rust Toolchain**: stable (cargo build/test), clippy, rustfmt
 - **Build Types**: Debug, Release, RelWithDebInfo
-- **Static Analysis**: clang-tidy, cppcheck
-- **Code Formatting**: clang-format
-- **Testing**: Unit tests, integration tests, benchmarks
+- **Static Analysis**: clang-tidy, cppcheck (C++) and clippy (Rust)
+- **Code Formatting**: clang-format (C++) and rustfmt (Rust)
+- **Testing**: Unit/integration tests for C++ and Rust; benchmarks
 
 ### Code Quality
 - Automated code formatting checks
@@ -274,7 +353,7 @@ KadeDB uses GitHub Actions for continuous integration and deployment. The pipeli
 
 ### Deployment
 - **Docker Images**: Automated builds for all releases
-- **Documentation**: Auto-deployed to GitHub Pages
+- **Documentation**: Auto-deployed to Read the Docs
 - **Packages**: Source and binary packages
 
 ### Release Process
@@ -286,18 +365,7 @@ KadeDB uses GitHub Actions for continuous integration and deployment. The pipeli
    - Build and push Docker images
    - Publish packages (if configured)
 
-## Key Features
-make -j$(nproc)
-
-# Run tests
-ctest --output-on-failure
-
-# Or use system dependencies (if available)
-cmake .. -DUSE_SYSTEM_DEPS=ON
-make -j$(nproc)
-```
-
-### Key Features
+### Build System Features
 
 - **Cross-platform**: Builds on Linux, macOS, and Windows
 - **Flexible Dependency Management**: Supports both system and bundled dependencies
@@ -332,33 +400,9 @@ cmake .. \
 
 For more details, see the [Dependency Management Documentation](cmake/README.md).
 
-## Repository Structure
-
-```
-KadeDB/
-├── kadedb-server/          # C++-based server-side database
-│   ├── relational/         # Relational storage
-│   ├── document/           # Document storage
-│   ├── time-series/        # Time-series storage
-│   ├── graph/              # Graph storage
-│   ├── kadeql/             # Full KadeQL parser
-│   └── backend/            # C++ with CUDA, Python bindings
-├── kadedb-lite/            # C-based embedded client for IoT devices
-│   ├── storage/            # RocksDB-based embedded storage
-│   ├── kadeql-lite/        # Minimal KadeQL subset
-│   ├── sync/               # MQTT/CoAP sync logic
-│   ├── compliance/         # AES-128 encryption, audit logging
-│   └── build/              # ARM-specific build scripts
-├── docs/                   # Documentation
-├── tests/                  # Testing framework
-├── examples/               # Code samples for healthcare and other industries
-├── README.md               # This file
-└── .github/                # CI/CD pipelines
-```
-
 ## Technical Architecture
 
-### KadeDB (Server)
+### KadeDB Core (C++)
 
 | Component           | Details                                                                 |
 |---------------------|-------------------------------------------------------------------------|
@@ -369,7 +413,17 @@ KadeDB/
 | **Interoperability**| Python bindings (pybind11), REST APIs, and extensible connectors      |
 
 
-### KadeDB-Lite (Client)
+### KadeDB Services (Rust)
+
+| Component           | Details                                                                 |
+|---------------------|-------------------------------------------------------------------------|
+| **Language**        | Rust (stable) for memory safety, async, and reliability                 |
+| **Role**            | REST/gRPC services, orchestration, connectors, auth/RBAC               |
+| **Async Runtime**   | tokio, axum/hyper, tonic                                                |
+| **Interoperability**| FFI to C++ core via C ABI or `cxx`; Arrow C Data Interface for zero-copy |
+
+
+### KadeDB-Lite (C)
 
 | Component          | Details                                                                 |
 |--------------------|-------------------------------------------------------------------------|
@@ -382,13 +436,21 @@ KadeDB/
 
 ## Programming Language Rationale
 
-### KadeDB (C++)
+### KadeDB Core (C++)
 - **Why C++?**
   - Top performance in HPC tasks (simulations, analytics)
   - Rich ecosystem (Boost, pybind11)
   - Flexibility for various industries (finance, manufacturing)
   - GPU acceleration (CUDA) support
   - Distributed queries for data-intensive applications
+
+### KadeDB Services (Rust)
+- **Why Rust?**
+  - Memory safety and fearless concurrency for services and orchestration
+  - Excellent async ecosystem (tokio, axum, tonic) for high-throughput networking
+  - Strong tooling (clippy, rustfmt) and fewer memory-safety CVEs
+  - Ergonomic connectors/adapters for protocols (HTTP/AMQP/etc.)
+  - Clean FFI to C++ core via `cxx` or stable C ABI; zero-copy with Arrow C Data Interface
 
 ### KadeDB-Lite (C)
 - **Why C?**
@@ -589,23 +651,38 @@ git clone https://github.com/MediLang/KadeDB.git
 cd KadeDB
 ```
 
-### 2. Build KadeDB-Lite (C, IoT)
+### 2. Build KadeDB Core (C++)
 ```bash
-cd kadedb-lite
-mkdir build && cd build
+cd cpp
+mkdir -p build && cd build
+cmake ..
+make -j$(nproc)
+```
+
+### 3. Build KadeDB Services (Rust)
+```bash
+cd ../../rust
+cargo build --workspace --release
+```
+
+#### Run a sample Rust service
+```bash
+# Replace <svc-name> with an actual service name in `rust/services/`
+cargo run -p services/<svc-name>
+
+# Example (if you have an HTTP gateway service):
+# cargo run -p services/http-gateway
+```
+
+### 4. Build KadeDB-Lite (C, IoT)
+```bash
+cd ../lite
+mkdir -p build && cd build
 cmake -DCMAKE_TOOLCHAIN_FILE=arm-gcc.cmake ..
 make
 ```
 
-### 3. Build KadeDB (C++, Server)
-```bash
-cd ../../kadedb-server
-mkdir build && cd build
-cmake ..
-make
-```
-
-### 4. Run Example
+### 5. Run Example
 ```javascript
 // Connect to KadeDB
 let db = KadeDB.connect("localhost:5432", credentials);
@@ -618,7 +695,7 @@ sensor.save_to_kadedb("local", "vibration");
 db.save_trade(trade_data);
 ```
 
-### 5. Example Query
+### 6. Example Query
 ```sql
 FROM KadeDB.manufacturing
 SELECT vibration
@@ -630,7 +707,7 @@ WHERE value > 0.5;
 ## Contributing
 
 We welcome contributions in the following areas:
-- C++ (KadeDB) and C (KadeDB-Lite) development
+- C++ (KadeDB Core), Rust (KadeDB Services), and C (KadeDB-Lite) development
 - Storage engines
 - KadeQL extensions
 - Industry-specific connectors
