@@ -1,0 +1,46 @@
+<context>
+# Overview
+This repository contains KadeDB, a hybrid C++/Rust multi-model database with a C-based embedded client (Lite). Given scope and complexity, the PRD is split into phases to deliver value incrementally while establishing solid foundations.
+
+# Core Features
+- Multi-model storage: relational, document, time-series, graph
+- KadeQL: domain-agnostic query language (SQL-/Cypher-like patterns)
+- HPC: CUDA acceleration, parallel execution, caching
+- IoT: KadeDB-Lite with RocksDB-based embedded storage and low-bandwidth sync
+- Services: Rust-based REST/gRPC services, connectors, auth/RBAC
+
+# User Experience
+- Primary users: platform engineers, data engineers, ML engineers, and IoT developers
+- Flows: build core library (C++), run a service (Rust), run an embedded client (C), issue queries via service or bindings
+</context>
+<PRD>
+# Technical Architecture
+- C++ Core in `cpp/` with public headers in `cpp/include/kadedb/`
+- Rust Services in `rust/` (workspace) built with cargo; interop via C ABI or cxx
+- Lite (C) in `lite/` with RocksDB storage and MQTT/CoAP sync
+- Bindings in `bindings/` (C headers and Python/Rust bridges)
+
+# Development Roadmap (multi-PRD)
+- Phase 1: MVP — C++ core minimal features and Lite client baseline
+- Phase 2: Services & HPC — Rust services, connectors, CUDA/HPC baselines
+- Phase 3: Multi-Model & Compliance — full models, distributed features, security/compliance
+- Phase 4: Release & Extensibility — packaging, SDKs, CI/CD, docs
+
+# Logical Dependency Chain
+1) Build and test C++ Core fundamentals
+2) Stabilize FFI and bindings
+3) Introduce Rust services over stable FFI
+4) Expand data models, connectors, and compliance
+
+# Risks and Mitigations
+- Scope creep: phased milestones; crisp MVP
+- FFI complexity: prefer stable C ABI or cxx with small surface area
+- Performance regressions: implement benchmarks and CI gates
+
+# Appendix
+- See referenced phase PRDs:
+  - scripts/prd_phase_1_mvp.txt
+  - scripts/prd_phase_2_services_hpc.txt
+  - scripts/prd_phase_3_multimodel_compliance.txt
+  - scripts/prd_phase_4_release_extensibility.txt
+</PRD>

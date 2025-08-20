@@ -1,0 +1,42 @@
+<context>
+# Overview
+Complete multi-model capabilities and introduce robust compliance/security features. Expand distributed architecture and synchronization for real deployments.
+
+# Core Features
+- Full multi-model: relational, document, time-series, graph
+- Distributed sharding/replication; caching strategies
+- Security: AES-256 (core), RBAC, audit logging; Lite AES-128
+- Compliance focus: HIPAA/GDPR, data retention and auditing
+- Industry connectors: FHIR/HL7, AMQP, OPC UA
+
+# User Experience
+- Admin can configure roles, retention, encryption policies
+- Operators can deploy services and scale out
+- Developers can use connectors to integrate with industry systems
+</context>
+<PRD>
+# Technical Architecture
+- Distributed components and cluster membership
+- Stronger sync protocols and conflict resolution
+- Compliance modules for logging, PII handling, and policy enforcement
+- Arrow C Data Interface for zero-copy interop where appropriate
+
+# Development Roadmap
+- Multi-model query planning improvements
+- Distributed features: partitioning, leader election (if needed), failover
+- Security/compliance modules: encryption, RBAC, audit trails
+- Connector maturity: FHIR/HL7 ingest and mapping; AMQP; OPC UA
+
+# Logical Dependency Chain
+1) Solid single-node core + services
+2) Add distributed substrate
+3) Wrap with compliance and security guarantees
+
+# Risks and Mitigations
+- Compliance scope: strict scoping and legal review checkpoints
+- Distributed correctness: use property tests and chaos testing
+
+# Appendix
+- Threat model and compliance checklist
+- Data governance and lifecycle docs
+</PRD>

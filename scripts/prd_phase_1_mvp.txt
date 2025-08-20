@@ -1,0 +1,49 @@
+<context>
+# Overview
+Deliver an MVP of KadeDB focusing on a usable C++ core and a minimal KadeDB-Lite client. Emphasize buildability, basic storage/query, and a stable FFI boundary to unblock service development.
+
+# Core Features
+- C++ Core: relational + document storage, basic KadeQL subset
+- Minimal query execution and storage APIs
+- FFI: stable C ABI headers in `bindings/c/`
+- Lite (C): RocksDB-backed embedded store, minimal KadeQL subset, basic sync stubs
+
+# User Experience
+- Build C++ core via CMake in `cpp/`
+- Link from downstream via `find_package(KadeDB)`
+- Use Lite (C) on embedded targets; simple CLI sample
+</context>
+<PRD>
+# Technical Architecture
+- C++ core modules in `cpp/src/` with public headers in `cpp/include/kadedb/`
+- C ABI headers in `bindings/c/` (constructor/destructor/version, simple CRUD)
+- Lite in `lite/` using RocksDB C API, minimal query parser subset
+
+# Development Roadmap
+- MVP storage:
+  - Relational tables: create/insert/select minimal
+  - Document store: put/get by key
+- Query layer:
+  - KadeQL subset: SELECT/INSERT basics
+- Build system:
+  - CMake presets, CI: build + unit tests
+- FFI:
+  - C ABI header and example usage in tests
+- Lite:
+  - Storage init/open/close/put/get + config
+  - Minimal sync stubs and config
+
+# Logical Dependency Chain
+1) Data model primitives and storage APIs
+2) KadeQL subset over those APIs
+3) FFI boundary over stable functions
+4) Lite client consuming storage via RocksDB and exposing minimal queries
+
+# Risks and Mitigations
+- Over-design: keep MVP scope minimal and testable
+- Parser complexity: hand-rolled subset to start; ANTLR later
+
+# Appendix
+- CI jobs: CMake build, unit tests
+- Examples: small ingest/query samples
+</PRD>

@@ -1,0 +1,52 @@
+<context>
+# Overview
+Introduce Rust services, orchestration, and connectors while bootstrapping baseline HPC features in the core (CUDA paths, parallel exec) and expanding data model support.
+
+# Core Features
+- Rust services (REST/gRPC) using tokio + axum/tonic
+- Auth/RBAC scaffolding, configuration, logging
+- Connectors: HTTP, initial healthcare (FHIR read) and finance (HTTP/AMQP stub)
+- HPC in C++ core: CUDA project structure, one or two GPU kernels, parallel execution path
+- Time-series and initial graph features
+
+# User Experience
+- Build services via `cargo build --workspace`
+- Run a sample service via `cargo run -p services/<svc-name>`
+- Call REST endpoints for basic queries and ingestion
+</context>
+<PRD>
+# Technical Architecture
+- Services in `rust/services/` with shared crates for models/FFI
+- FFI to core using C ABI or cxx with bridged types
+- HTTP/gRPC APIs for ingest/query; OpenAPI/Protobuf specs checked into repo
+- Core CUDA: optional build flags, kernels in `cpp/cuda/`
+
+# Development Roadmap
+- Services:
+  - HTTP: health, version, query, ingest
+  - gRPC: query service (tonic)
+  - Auth: token-based, roles scaffolding
+- Connectors:
+  - HTTP client-based adapters; stubs for FHIR/AMQP
+- Data models:
+  - Add time-series storage and APIs
+  - Graph basics (nodes, edges, simple traversal)
+- HPC:
+  - Add CUDA compile path and a kernel-backed operation
+- Observability:
+  - Structured logging, metrics, tracing
+
+# Logical Dependency Chain
+1) Stabilize FFI and common types
+2) HTTP/gRPC service skeletons
+3) Connectors and adapters
+4) Extend core for time-series/graph and CUDA path
+
+# Risks and Mitigations
+- FFI regressions: version headers and integration tests
+- Async complexity: use idiomatic tokio patterns and backpressure
+
+# Appendix
+- API reference: OpenAPI/Protobuf definitions
+- Benchmarks: initial end-to-end latency/throughput tests
+</PRD>

@@ -1,0 +1,39 @@
+<context>
+# Overview
+Prepare for open-source release and broader adoption: packaging, SDKs, documentation, CI/CD hardening, and examples across industries.
+
+# Core Features
+- Packaging: C++ (Deb/RPM), Rust binaries, Docker images
+- SDKs/bindings: Python (pybind11 or PyO3), C headers, sample Rust client
+- Docs: developer guide, admin guide, operations/runbooks, tutorials
+- CI/CD: coverage, sanitizers, release pipelines, supply-chain security
+
+# User Experience
+- Quickstart guides for common deployments
+- Example apps (healthcare, finance, manufacturing)
+</context>
+<PRD>
+# Technical Architecture
+- Release automation via GitHub Actions
+- Versioning and changelog policy
+- Doc site publishing (Read the Docs)
+
+# Development Roadmap
+- Packaging for major platforms
+- SDKs with examples and tests
+- Docker Compose examples for local cluster
+- Harden CI: SAST/dependency checks, signing
+
+# Logical Dependency Chain
+1) Stabilize interfaces and APIs
+2) Build SDKs atop stabilized core/services
+3) Package and document
+
+# Risks and Mitigations
+- Fragmentation: maintain compatibility matrix
+- Distribution complexity: start with Linux, add others incrementally
+
+# Appendix
+- Release checklist and template
+- Example app list and owners
+</PRD>
