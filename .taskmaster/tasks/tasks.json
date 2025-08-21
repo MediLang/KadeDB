@@ -1,0 +1,143 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Setup CMake Build System",
+        "description": "Create the initial CMake configuration for the KadeDB project with proper directory structure and build presets.",
+        "details": "Create the following structure:\n- Root CMakeLists.txt with project definition\n- cpp/CMakeLists.txt for C++ core\n- cpp/src/ for implementation files\n- cpp/include/kadedb/ for public headers\n- bindings/c/ for C ABI headers\n- lite/ for KadeDB-Lite implementation\n\nImplement CMake presets for different build configurations (Debug, Release). Setup proper version numbering, install targets, and export configuration to enable downstream projects to use find_package(KadeDB). Include RocksDB as a dependency for the Lite implementation.",
+        "testStrategy": "Verify build system by running CMake configuration and build process on different platforms. Ensure all targets build successfully and that downstream projects can consume the library via find_package(KadeDB).",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 2,
+        "title": "Implement Data Model Primitives",
+        "description": "Define the core data model primitives that will be used throughout the KadeDB system.",
+        "details": "Create C++ classes for fundamental data types:\n- Value class hierarchy (Integer, Float, String, Boolean, etc.)\n- Schema definition (Column, Table, Document)\n- Result set representations\n\nImplement serialization/deserialization for these primitives. Ensure proper memory management and copy semantics. Design with FFI compatibility in mind to simplify C binding creation later.\n\nExample:\n```cpp\nnamespace kadedb {\n  class Value {\n  public:\n    virtual ~Value() = default;\n    virtual ValueType type() const = 0;\n    virtual std::string toString() const = 0;\n  };\n  \n  class IntegerValue : public Value {\n  private:\n    int64_t value_;\n  public:\n    explicit IntegerValue(int64_t value) : value_(value) {}\n    ValueType type() const override { return ValueType::Integer; }\n    int64_t value() const { return value_; }\n    std::string toString() const override { return std::to_string(value_); }\n  };\n  // Other value types...\n}\n```",
+        "testStrategy": "Create comprehensive unit tests for each primitive type, testing construction, conversion, comparison, and serialization/deserialization. Test edge cases like empty values, maximum/minimum values, and invalid inputs.",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 3,
+        "title": "Implement Storage API",
+        "description": "Create the storage API interfaces for both relational and document data models.",
+        "details": "Define abstract interfaces for storage operations:\n\n1. Relational Storage API:\n```cpp\nclass RelationalStorage {\npublic:\n  virtual ~RelationalStorage() = default;\n  virtual Status createTable(const TableSchema& schema) = 0;\n  virtual Status insertRow(const std::string& table, const Row& row) = 0;\n  virtual ResultSet select(const std::string& table, const std::vector<std::string>& columns, \n                          const std::optional<Predicate>& where = std::nullopt) = 0;\n};\n```\n\n2. Document Storage API:\n```cpp\nclass DocumentStorage {\npublic:\n  virtual ~DocumentStorage() = default;\n  virtual Status put(const std::string& collection, const std::string& key, const Document& doc) = 0;\n  virtual Result<Document> get(const std::string& collection, const std::string& key) = 0;\n};\n```\n\nImplement an in-memory version of these interfaces for testing and development. Design with extensibility in mind to support different backend implementations later.",
+        "testStrategy": "Create unit tests for the storage APIs using the in-memory implementation. Test table creation, data insertion, and basic queries. Verify error handling for invalid operations (e.g., creating a table that already exists, inserting data with wrong schema).",
+        "priority": "high",
+        "dependencies": [
+          2
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 4,
+        "title": "Implement KadeQL Parser Subset",
+        "description": "Create a minimal hand-rolled parser for the KadeQL subset required for the MVP.",
+        "details": "Implement a simple recursive descent parser for basic KadeQL statements:\n\n1. SELECT statement with basic WHERE clauses\n2. INSERT statement for adding data\n\nFocus on the minimal subset needed for the MVP. Parse queries into an abstract syntax tree (AST) that can be executed by the query engine.\n\nExample parser implementation:\n```cpp\nclass KadeQLParser {\npublic:\n  std::unique_ptr<Statement> parse(const std::string& query) {\n    Tokenizer tokenizer(query);\n    return parseStatement(tokenizer);\n  }\n\nprivate:\n  std::unique_ptr<Statement> parseStatement(Tokenizer& tokenizer) {\n    Token token = tokenizer.peek();\n    if (token.type == TokenType::SELECT) {\n      return parseSelectStatement(tokenizer);\n    } else if (token.type == TokenType::INSERT) {\n      return parseInsertStatement(tokenizer);\n    }\n    throw ParseError(\"Unexpected token: \" + token.value);\n  }\n  \n  // Implementation of parseSelectStatement and parseInsertStatement\n};\n```\n\nAvoid using external parser generators like ANTLR for the MVP as mentioned in the risks section.",
+        "testStrategy": "Create unit tests with various KadeQL queries, verifying that they parse correctly into the expected AST structure. Include negative tests with invalid syntax to ensure proper error reporting.",
+        "priority": "medium",
+        "dependencies": [
+          2
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 5,
+        "title": "Implement Query Execution Engine",
+        "description": "Create a query execution engine that can execute the parsed KadeQL statements against the storage layer.",
+        "details": "Implement a query executor that takes parsed statements and executes them against the storage layer:\n\n```cpp\nclass QueryExecutor {\npublic:\n  explicit QueryExecutor(Storage& storage) : storage_(storage) {}\n  \n  Result<ResultSet> execute(const Statement& statement) {\n    switch (statement.type()) {\n      case StatementType::SELECT:\n        return executeSelect(static_cast<const SelectStatement&>(statement));\n      case StatementType::INSERT:\n        return executeInsert(static_cast<const InsertStatement&>(statement));\n      default:\n        return Error(\"Unsupported statement type\");\n    }\n  }\n\nprivate:\n  Storage& storage_;\n  \n  Result<ResultSet> executeSelect(const SelectStatement& select);\n  Result<ResultSet> executeInsert(const InsertStatement& insert);\n};\n```\n\nImplement basic query optimization for simple predicates. Focus on correctness rather than performance for the MVP.",
+        "testStrategy": "Create integration tests that combine the parser and executor to run queries end-to-end. Verify that queries produce the expected results when executed against test data in the storage layer.",
+        "priority": "medium",
+        "dependencies": [
+          3,
+          4
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 6,
+        "title": "Create C ABI Interface",
+        "description": "Design and implement a stable C ABI for interfacing with the KadeDB core.",
+        "details": "Create C headers in `bindings/c/` with the following components:\n\n1. Version information and initialization functions\n2. Constructor/destructor functions for core objects\n3. Simple CRUD operations\n\nExample C ABI:\n```c\n// kadedb.h\n#ifndef KADEDB_H\n#define KADEDB_H\n\n#ifdef __cplusplus\nextern \"C\" {\n#endif\n\n// Opaque types\ntypedef struct KadeDB_Storage KadeDB_Storage;\ntypedef struct KadeDB_ResultSet KadeDB_ResultSet;\n\n// Version info\nconst char* KadeDB_GetVersion();\n\n// Storage operations\nKadeDB_Storage* KadeDB_CreateStorage();\nvoid KadeDB_DestroyStorage(KadeDB_Storage* storage);\n\n// CRUD operations\nint KadeDB_CreateTable(KadeDB_Storage* storage, const char* schema);\nint KadeDB_InsertRow(KadeDB_Storage* storage, const char* table, const char* data);\nKadeDB_ResultSet* KadeDB_ExecuteQuery(KadeDB_Storage* storage, const char* query);\n\n// ResultSet operations\nint KadeDB_ResultSet_NextRow(KadeDB_ResultSet* rs);\nconst char* KadeDB_ResultSet_GetString(KadeDB_ResultSet* rs, int column);\nvoid KadeDB_DestroyResultSet(KadeDB_ResultSet* rs);\n\n#ifdef __cplusplus\n}\n#endif\n\n#endif // KADEDB_H\n```\n\nImplement the C++ side of these bindings that map between the C ABI and the C++ implementation.",
+        "testStrategy": "Create C test programs that use the C ABI to verify it works correctly. Test memory management to ensure no leaks. Verify that all operations exposed through the C ABI work as expected.",
+        "priority": "high",
+        "dependencies": [
+          3,
+          5
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 7,
+        "title": "Implement KadeDB-Lite RocksDB Backend",
+        "description": "Create the KadeDB-Lite implementation using RocksDB as the storage backend.",
+        "details": "Implement the KadeDB-Lite client in the `lite/` directory:\n\n1. Use RocksDB C API for storage operations\n2. Implement basic storage operations (init/open/close/put/get)\n3. Add configuration options for RocksDB\n\nExample implementation:\n```c\n// kadedb_lite.c\n#include \"kadedb_lite.h\"\n#include \"rocksdb/c.h\"\n\nstruct kadedb_lite_t {\n  rocksdb_t* db;\n  rocksdb_options_t* options;\n  rocksdb_writeoptions_t* woptions;\n  rocksdb_readoptions_t* roptions;\n};\n\nkadedb_lite_t* kadedb_lite_open(const char* path, kadedb_lite_options_t* options) {\n  kadedb_lite_t* lite = malloc(sizeof(kadedb_lite_t));\n  if (!lite) return NULL;\n  \n  lite->options = rocksdb_options_create();\n  rocksdb_options_set_create_if_missing(lite->options, 1);\n  \n  // Apply custom options if provided\n  if (options) {\n    // Apply options...\n  }\n  \n  char* err = NULL;\n  lite->db = rocksdb_open(lite->options, path, &err);\n  if (err) {\n    // Handle error\n    free(lite);\n    return NULL;\n  }\n  \n  lite->woptions = rocksdb_writeoptions_create();\n  lite->roptions = rocksdb_readoptions_create();\n  \n  return lite;\n}\n\n// Implement other functions...\n```",
+        "testStrategy": "Create unit tests for the KadeDB-Lite implementation. Test basic operations like opening/closing databases, putting/getting values. Test with various configuration options. Verify error handling for invalid operations.",
+        "priority": "medium",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 8,
+        "title": "Implement KadeDB-Lite Query Layer",
+        "description": "Add a minimal query layer to KadeDB-Lite that supports basic KadeQL operations.",
+        "details": "Implement a simplified query parser and executor for KadeDB-Lite:\n\n1. Support basic SELECT and INSERT operations\n2. Map queries to RocksDB operations\n\nExample implementation:\n```c\n// kadedb_lite_query.c\n#include \"kadedb_lite.h\"\n#include \"kadedb_lite_query.h\"\n\ntypedef enum {\n  QUERY_TYPE_SELECT,\n  QUERY_TYPE_INSERT\n} query_type_t;\n\ntypedef struct {\n  query_type_t type;\n  char* table;\n  // Other query parameters\n} parsed_query_t;\n\nstatic parsed_query_t* parse_query(const char* query) {\n  // Simple parsing logic\n  // For MVP, just handle very basic queries\n}\n\nkadedb_lite_result_t* kadedb_lite_execute_query(kadedb_lite_t* db, const char* query) {\n  parsed_query_t* parsed = parse_query(query);\n  if (!parsed) return NULL;\n  \n  kadedb_lite_result_t* result = NULL;\n  \n  switch (parsed->type) {\n    case QUERY_TYPE_SELECT:\n      // Handle SELECT\n      break;\n    case QUERY_TYPE_INSERT:\n      // Handle INSERT\n      break;\n  }\n  \n  // Clean up parsed query\n  free(parsed);\n  \n  return result;\n}\n```",
+        "testStrategy": "Create tests with various KadeQL queries against KadeDB-Lite. Verify that queries produce the expected results. Test error handling for invalid queries.",
+        "priority": "medium",
+        "dependencies": [
+          7
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 9,
+        "title": "Implement Sync Stubs for KadeDB-Lite",
+        "description": "Add minimal synchronization stubs to KadeDB-Lite to support future sync capabilities.",
+        "details": "Implement basic synchronization stubs in KadeDB-Lite:\n\n```c\n// kadedb_lite_sync.h\ntypedef struct kadedb_lite_sync_config_t {\n  const char* remote_url;\n  const char* auth_token;\n  int sync_interval_seconds;\n} kadedb_lite_sync_config_t;\n\n// Initialize sync with configuration\nint kadedb_lite_sync_init(kadedb_lite_t* db, kadedb_lite_sync_config_t* config);\n\n// Start sync process\nint kadedb_lite_sync_start(kadedb_lite_t* db);\n\n// Stop sync process\nint kadedb_lite_sync_stop(kadedb_lite_t* db);\n\n// Get sync status\nint kadedb_lite_sync_status(kadedb_lite_t* db, char** status_out);\n```\n\nImplement these functions as stubs that return success but don't actually perform synchronization. Add proper configuration options and status reporting to prepare for future implementation.",
+        "testStrategy": "Create tests that verify the sync stubs can be called without errors. Test configuration parsing and status reporting. Ensure the stubs don't interfere with normal database operations.",
+        "priority": "low",
+        "dependencies": [
+          7
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 10,
+        "title": "Create Example Applications and CI Setup",
+        "description": "Develop example applications demonstrating KadeDB usage and set up CI for automated testing.",
+        "details": "Create example applications in `examples/` directory:\n\n1. Simple C++ application using the core API\n2. C application using the C ABI\n3. KadeDB-Lite CLI sample application\n\nExample KadeDB-Lite CLI:\n```c\n// examples/lite_cli.c\n#include \"kadedb_lite.h\"\n#include <stdio.h>\n#include <stdlib.h>\n#include <string.h>\n\nint main(int argc, char** argv) {\n  if (argc < 2) {\n    printf(\"Usage: %s <db_path>\\n\", argv[0]);\n    return 1;\n  }\n  \n  kadedb_lite_t* db = kadedb_lite_open(argv[1], NULL);\n  if (!db) {\n    printf(\"Failed to open database\\n\");\n    return 1;\n  }\n  \n  char cmd[1024];\n  printf(\"KadeDB-Lite CLI\\n\");\n  \n  while (1) {\n    printf(\"> \");\n    if (!fgets(cmd, sizeof(cmd), stdin)) break;\n    \n    // Remove newline\n    cmd[strcspn(cmd, \"\\n\")] = 0;\n    \n    if (strcmp(cmd, \"exit\") == 0 || strcmp(cmd, \"quit\") == 0) {\n      break;\n    }\n    \n    // Execute query\n    kadedb_lite_result_t* result = kadedb_lite_execute_query(db, cmd);\n    if (result) {\n      // Display result\n      kadedb_lite_result_free(result);\n    }\n  }\n  \n  kadedb_lite_close(db);\n  return 0;\n}\n```\n\nSet up CI configuration for automated testing:\n1. GitHub Actions or similar CI system\n2. Build jobs for different platforms\n3. Unit test execution\n4. Example application builds",
+        "testStrategy": "Manually test the example applications to ensure they work as expected. Verify that the CI configuration correctly builds and tests the project on all supported platforms.",
+        "priority": "medium",
+        "dependencies": [
+          6,
+          8,
+          9
+        ],
+        "status": "pending",
+        "subtasks": []
+      }
+    ],
+    "metadata": {
+      "created": "2025-08-21T06:20:26.232Z",
+      "updated": "2025-08-21T06:20:26.232Z",
+      "description": "Tasks for master context"
+    }
+  }
+}
