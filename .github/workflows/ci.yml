@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Ninja (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build
+
+      - name: Install Ninja (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          brew update
+          brew install ninja || true
+
+      - name: Install Ninja (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          choco install -y ninja
+
+      - name: Configure (Debug)
+        run: cmake -S . --preset debug
+
+      - name: Build (Debug)
+        run: cmake --build --preset debug --parallel
+
+      - name: Install
+        run: cmake --install build/debug --prefix "${{ github.workspace }}/install"
+
+      - name: Show installed files
+        run: |
+          echo "Installed tree:"
+          if [ -d "${{ github.workspace }}/install" ]; then
+            find "${{ github.workspace }}/install" -maxdepth 3 -print
+          fi
+        shell: bash

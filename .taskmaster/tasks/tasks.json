@@ -9,7 +9,7 @@
         "testStrategy": "Verify build system by running CMake configuration and build process on different platforms. Ensure all targets build successfully and that downstream projects can consume the library via find_package(KadeDB).",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -17,7 +17,7 @@
             "description": "Set up the main CMakeLists.txt file at the project root with proper project definition, minimum CMake version, C++ standard settings, and compiler options.",
             "dependencies": [],
             "details": "Create the root CMakeLists.txt with:\n- Set minimum CMake version (3.14 or newer)\n- Define project name, version, description, and languages (C, CXX)\n- Set C++ standard (C++17 or newer)\n- Configure compiler warnings and options\n- Define build type options if not using presets\n- Add global include directories\n- Setup output directories for binaries\n- Include subdirectories for components",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {

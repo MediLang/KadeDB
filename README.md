@@ -154,7 +154,7 @@ By unifying HPC, IoT, and multi-model storage in a single repository, KadeDB:
 ### Prerequisites
 
 - C++17 compatible compiler (GCC 8+, Clang 7+, MSVC 2019+)
-- CMake 3.14 or higher
+- CMake 3.16 or higher
 - Git
 - [RocksDB](https://github.com/facebook/rocksdb) (6.8.1 or later)
 - [ANTLR4](https://www.antlr.org/) (4.9 or later)
@@ -220,6 +220,29 @@ sudo make install
 sudo make uninstall
 ```
 
+#### Using CMake Presets (recommended)
+
+```bash
+# Configure
+cmake -S . --preset debug
+
+# Build
+cmake --build --preset debug --parallel
+
+# Install to a local prefix (optional)
+cmake --install build/debug --prefix "$PWD/install"
+```
+
+#### RocksDB options for KadeDB-Lite
+
+KadeDB-Lite can optionally link RocksDB. Enable it with:
+
+```bash
+cmake -S . -B build/release --preset release \
+  -DKADEDB_LITE_WITH_ROCKSDB=ON \
+  -DKADEDB_LITE_FETCH_ROCKSDB=ON   # fetch/build if RocksDB isn't found
+```
+
 #### Build Options
 
 - `-DBUILD_SHARED_LIBS=ON/OFF`: Build shared libraries (default: ON)
@@ -266,7 +289,7 @@ KadeDB provides CMake package configuration files for easy integration into othe
 
 ```cmake
 find_package(KadeDB REQUIRED)
-target_link_libraries(your_target PRIVATE KadeDB::Core)
+target_link_libraries(your_target PRIVATE KadeDB::kadedb_core)
 ```
 
 ## FFI Boundary and Bindings
