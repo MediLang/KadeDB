@@ -10,7 +10,71 @@
         "priority": "high",
         "dependencies": [],
         "status": "pending",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create Root CMakeLists.txt and Project Definition",
+            "description": "Set up the main CMakeLists.txt file at the project root with proper project definition, minimum CMake version, C++ standard settings, and compiler options.",
+            "dependencies": [],
+            "details": "Create the root CMakeLists.txt with:\n- Set minimum CMake version (3.14 or newer)\n- Define project name, version, description, and languages (C, CXX)\n- Set C++ standard (C++17 or newer)\n- Configure compiler warnings and options\n- Define build type options if not using presets\n- Add global include directories\n- Setup output directories for binaries\n- Include subdirectories for components",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Implement Directory Structure and Component CMakeLists",
+            "description": "Create the directory structure and component-specific CMakeLists.txt files for the core library, C bindings, and KadeDB-Lite implementation.",
+            "dependencies": [],
+            "details": "1. Create directories:\n   - cpp/src/ for implementation files\n   - cpp/include/kadedb/ for public headers\n   - bindings/c/ for C ABI headers\n   - lite/ for KadeDB-Lite implementation\n2. Create cpp/CMakeLists.txt for the core library\n3. Create bindings/c/CMakeLists.txt for C bindings\n4. Create lite/CMakeLists.txt for KadeDB-Lite\n5. Configure each component as a separate target with appropriate properties",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Configure CMake Presets for Build Configurations",
+            "description": "Create CMakePresets.json file with presets for Debug and Release builds, as well as cross-platform configurations.",
+            "dependencies": [],
+            "details": "1. Create CMakePresets.json with:\n   - Debug preset with debug symbols, no optimization\n   - Release preset with optimizations\n   - RelWithDebInfo preset\n   - Platform-specific presets for Windows, Linux, macOS\n   - Configure generator presets (Ninja, Visual Studio, etc.)\n2. Add test presets for CTest integration\n3. Document usage of presets in README.md",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Implement Version Numbering and Configuration",
+            "description": "Set up version numbering system and configure version information to be accessible at runtime.",
+            "dependencies": [],
+            "details": "1. Define version variables in root CMakeLists.txt (MAJOR, MINOR, PATCH)\n2. Create a version.h.in template file\n3. Use configure_file() to generate version.h with CMake variables\n4. Implement a GetVersion() function that returns version information\n5. Setup SOVERSION for shared libraries\n6. Configure package version for find_package compatibility",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Setup Install Targets and Export Configuration",
+            "description": "Configure installation targets and export configuration to enable downstream projects to use find_package(KadeDB).",
+            "dependencies": [],
+            "details": "1. Define install targets for libraries, headers, and binaries\n2. Create and install KadeDBConfig.cmake and KadeDBConfigVersion.cmake\n3. Set up export targets with EXPORT keyword\n4. Configure component-based installation\n5. Add install rules for documentation and examples\n6. Test the installation process and find_package functionality",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Integrate RocksDB Dependency for KadeDB-Lite",
+            "description": "Set up third-party dependency management for RocksDB and integrate it with the KadeDB-Lite implementation.",
+            "dependencies": [],
+            "details": "1. Add options for using system RocksDB vs. building from source\n2. Implement find_package(RocksDB) with fallback to FetchContent\n3. Configure RocksDB build options if building from source\n4. Set up proper linking of RocksDB to KadeDB-Lite target\n5. Handle platform-specific configurations for RocksDB\n6. Document RocksDB dependency requirements",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 7,
+            "title": "Create CI Build and Test Verification Scripts",
+            "description": "Develop CI configuration scripts for automated building and testing across different platforms and configurations.",
+            "dependencies": [],
+            "details": "1. Create GitHub Actions workflow files for CI/CD\n2. Configure matrix builds for different platforms (Windows, Linux, macOS)\n3. Set up build jobs for different configurations (Debug, Release)\n4. Implement test execution in CI pipeline\n5. Add caching for dependencies and build artifacts\n6. Configure code coverage reporting\n7. Add status badges to README.md",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
       },
       {
         "id": 2,
@@ -77,7 +141,81 @@
           5
         ],
         "status": "pending",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Design C Header for Versioning and Initialization",
+            "description": "Create the C header file structure with version information and initialization functions",
+            "dependencies": [],
+            "details": "Create the initial kadedb.h header file with:\n- Header guards and extern \"C\" block\n- Version information functions (KadeDB_GetVersion, KadeDB_GetMajorVersion, etc.)\n- Library initialization/cleanup functions if needed\n- Error handling constants and functions\n- Basic type definitions and forward declarations\n\nEnsure the header is properly documented with comments explaining usage.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Implement Opaque Types and Memory Management",
+            "description": "Define opaque type structures and their memory management functions",
+            "dependencies": [
+              "6.1"
+            ],
+            "details": "Implement:\n- Opaque type definitions for KadeDB_Storage, KadeDB_ResultSet, and other necessary structures\n- Constructor functions (KadeDB_CreateStorage, etc.)\n- Destructor functions (KadeDB_DestroyStorage, etc.)\n- Reference counting or other memory management mechanisms if needed\n- Error state handling for these objects",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Create CRUD Operation Bindings",
+            "description": "Implement the C functions for basic CRUD operations",
+            "dependencies": [
+              "6.1",
+              "6.2"
+            ],
+            "details": "Implement C functions for:\n- Table creation (KadeDB_CreateTable)\n- Data insertion (KadeDB_InsertRow)\n- Data retrieval (KadeDB_ExecuteQuery)\n- Data update operations\n- Data deletion operations\n- Schema manipulation functions\n\nEnsure proper error handling and memory safety.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Develop Result Set Access and Iteration",
+            "description": "Implement functions for accessing and iterating through query results",
+            "dependencies": [
+              "6.2",
+              "6.3"
+            ],
+            "details": "Create functions for:\n- Result set navigation (KadeDB_ResultSet_NextRow, KadeDB_ResultSet_Reset)\n- Data access by type (KadeDB_ResultSet_GetString, KadeDB_ResultSet_GetInt, etc.)\n- Column information retrieval (name, type, index)\n- Error state checking\n- Result set metadata access\n\nEnsure proper memory management and type safety.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Implement C++ Glue Code",
+            "description": "Create the C++ implementation that bridges between the C ABI and the C++ core",
+            "dependencies": [
+              "6.1",
+              "6.2",
+              "6.3",
+              "6.4"
+            ],
+            "details": "Implement the C++ side of the bindings in bindings/c/src/:\n- Create wrapper classes that implement the opaque C types\n- Implement all C API functions to call the corresponding C++ core functions\n- Handle memory management and object lifetime\n- Implement proper error translation between C++ exceptions and C error codes\n- Ensure thread safety where appropriate",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Create C Test Suite",
+            "description": "Develop a comprehensive test suite for the C ABI",
+            "dependencies": [
+              "6.1",
+              "6.2",
+              "6.3",
+              "6.4",
+              "6.5"
+            ],
+            "details": "Create tests in bindings/c/tests/ that:\n- Verify all API functions work correctly\n- Test error handling and edge cases\n- Validate memory safety (no leaks or double-frees)\n- Test thread safety if applicable\n- Include examples of typical usage patterns\n- Verify compatibility with C applications\n\nIntegrate these tests with the CMake build system.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
       },
       {
         "id": 7,
