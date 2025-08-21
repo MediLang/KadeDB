@@ -16,6 +16,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
+# Global properties
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+include(GNUInstallDirs)
+
 # Default build type
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose the type of build." FORCE)
@@ -59,30 +63,30 @@ write_basic_package_version_file(
 configure_package_config_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/cmake/KadeDBConfig.cmake.in
   ${CMAKE_CURRENT_BINARY_DIR}/KadeDBConfig.cmake
-  INSTALL_DESTINATION lib/cmake/KadeDB
+  INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/KadeDB
 )
 
 # Install headers (public) and generated version header
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/cpp/include/
-        DESTINATION include
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
         FILES_MATCHING PATTERN "*.h" PATTERN "*.hpp")
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bindings/c/include/
-        DESTINATION include
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
         FILES_MATCHING PATTERN "*.h")
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lite/include/
-        DESTINATION include
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
         FILES_MATCHING PATTERN "*.h")
 install(FILES ${KADEDB_GENERATED_INCLUDE_DIR}/kadedb/version.h
-        DESTINATION include/kadedb)
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/kadedb)
 
 # Export and install targets
 install(EXPORT KadeDBTargets
         NAMESPACE KadeDB::
-        DESTINATION lib/cmake/KadeDB)
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/KadeDB)
 
 # Install package config files
 install(FILES
   ${CMAKE_CURRENT_BINARY_DIR}/KadeDBConfig.cmake
   ${CMAKE_CURRENT_BINARY_DIR}/KadeDBConfigVersion.cmake
-  DESTINATION lib/cmake/KadeDB
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/KadeDB
 )

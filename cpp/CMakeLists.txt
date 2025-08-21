@@ -22,6 +22,9 @@ target_include_directories(kadedb_core
     $<INSTALL_INTERFACE:include>
 )
 
+# Compile features
+target_compile_features(kadedb_core PUBLIC cxx_std_17)
+
 # Properties
 set_target_properties(kadedb_core PROPERTIES
   OUTPUT_NAME kadedb_core
@@ -37,7 +40,7 @@ endif()
 # Install
 install(TARGETS kadedb_core
   EXPORT KadeDBTargets
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )

@@ -23,3 +23,14 @@ node_modules/
 
 # OS specific
 .DS_Store
+
+# Build outputs
+build/
+build-*/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+*.ninja
+*.ninja_deps
+*.ninja_log
+compile_commands.json
