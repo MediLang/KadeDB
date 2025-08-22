@@ -35,7 +35,7 @@
             "description": "Create CMakePresets.json file with presets for Debug and Release builds, as well as cross-platform configurations.",
             "dependencies": [],
             "details": "1. Create CMakePresets.json with:\n   - Debug preset with debug symbols, no optimization\n   - Release preset with optimizations\n   - RelWithDebInfo preset\n   - Platform-specific presets for Windows, Linux, macOS\n   - Configure generator presets (Ninja, Visual Studio, etc.)\n2. Add test presets for CTest integration\n3. Document usage of presets in README.md",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -274,7 +274,7 @@
     ],
     "metadata": {
       "created": "2025-08-21T06:20:26.232Z",
-      "updated": "2025-08-21T06:20:26.232Z",
+      "updated": "2025-08-22T03:27:15Z",
       "description": "Tasks for master context"
     }
   }

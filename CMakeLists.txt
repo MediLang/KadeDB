@@ -9,6 +9,9 @@ project(KadeDB
 # Build options
 option(KADEDB_BUILD_SHARED "Build shared libraries" ON)
 option(KADEDB_LITE_WITH_ROCKSDB "Build KadeDB-Lite with RocksDB dependency" OFF)
+option(KADEDB_ENABLE_ASAN "Enable AddressSanitizer (non-MSVC)" OFF)
+option(KADEDB_ENABLE_UBSAN "Enable UndefinedBehaviorSanitizer (non-MSVC)" OFF)
+option(KADEDB_ENABLE_COVERAGE "Enable coverage flags (gcc/clang, non-MSVC)" OFF)
 
 # Standards
 set(CMAKE_CXX_STANDARD 17)
@@ -19,6 +22,7 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 # Global properties
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 include(GNUInstallDirs)
+include(CTest) # defines BUILD_TESTING and enables testing by default
 
 # Default build type
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -31,6 +35,22 @@ if(MSVC)
   add_compile_options(/W4)
 else()
   add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
+
+# Sanitizers / Coverage (non-MSVC)
+if(NOT MSVC)
+  if(KADEDB_ENABLE_ASAN)
+    add_compile_options(-fsanitize=address -fno-omit-frame-pointer)
+    add_link_options(-fsanitize=address)
+  endif()
+  if(KADEDB_ENABLE_UBSAN)
+    add_compile_options(-fsanitize=undefined)
+    add_link_options(-fsanitize=undefined)
+  endif()
+  if(KADEDB_ENABLE_COVERAGE)
+    add_compile_options(--coverage -O0 -g)
+    add_link_options(--coverage)
+  endif()
 endif()
 
 # Output directories
@@ -49,6 +69,11 @@ configure_file(${KADEDB_VERSION_HEADER_INPUT}
 add_subdirectory(cpp)
 add_subdirectory(bindings/c)
 add_subdirectory(lite)
+
+# Tests
+if(BUILD_TESTING)
+  add_subdirectory(cpp/test)
+endif()
 
 include(CMakePackageConfigHelpers)
 

@@ -11,6 +11,13 @@
       }
     },
     {
+      "name": "vs2022-base",
+      "hidden": true,
+      "inherits": ["base"],
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64"
+    },
+    {
       "name": "debug",
       "displayName": "Debug",
       "inherits": ["base"],
@@ -33,11 +40,160 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "RelWithDebInfo"
       }
+    },
+    {
+      "name": "linux-gcc-debug",
+      "displayName": "Linux GCC Debug",
+      "inherits": ["base"],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_C_COMPILER": "gcc",
+        "CMAKE_CXX_COMPILER": "g++"
+      }
+    },
+    {
+      "name": "linux-gcc-release",
+      "displayName": "Linux GCC Release",
+      "inherits": ["base"],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_C_COMPILER": "gcc",
+        "CMAKE_CXX_COMPILER": "g++"
+      }
+    },
+    {
+      "name": "linux-gcc-relwithdebinfo",
+      "displayName": "Linux GCC RelWithDebInfo",
+      "inherits": ["base"],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "CMAKE_C_COMPILER": "gcc",
+        "CMAKE_CXX_COMPILER": "g++"
+      }
+    },
+    {
+      "name": "linux-clang-debug",
+      "displayName": "Linux Clang Debug",
+      "inherits": ["base"],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++"
+      }
+    },
+    {
+      "name": "linux-clang-release",
+      "displayName": "Linux Clang Release",
+      "inherits": ["base"],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++"
+      }
+    },
+    {
+      "name": "linux-clang-relwithdebinfo",
+      "displayName": "Linux Clang RelWithDebInfo",
+      "inherits": ["base"],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++"
+      }
+    },
+    {
+      "name": "macos-clang-debug",
+      "displayName": "macOS Clang Debug",
+      "inherits": ["base"],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++"
+      }
+    },
+    {
+      "name": "macos-clang-release",
+      "displayName": "macOS Clang Release",
+      "inherits": ["base"],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++"
+      }
+    },
+    {
+      "name": "macos-clang-relwithdebinfo",
+      "displayName": "macOS Clang RelWithDebInfo",
+      "inherits": ["base"],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "CMAKE_C_COMPILER": "clang",
+        "CMAKE_CXX_COMPILER": "clang++"
+      }
+    },
+    {
+      "name": "windows-vs2022",
+      "displayName": "Windows MSVC (VS 2022)",
+      "inherits": ["vs2022-base"]
+    },
+    {
+      "name": "xcode-base",
+      "hidden": true,
+      "inherits": ["base"],
+      "generator": "Xcode"
+    },
+    {
+      "name": "macos-xcode",
+      "displayName": "macOS Xcode",
+      "inherits": ["xcode-base"]
+    },
+    {
+      "name": "debug-asan",
+      "displayName": "Debug ASAN",
+      "inherits": ["debug"],
+      "cacheVariables": { "KADEDB_ENABLE_ASAN": true }
+    },
+    {
+      "name": "debug-ubsan",
+      "displayName": "Debug UBSAN",
+      "inherits": ["debug"],
+      "cacheVariables": { "KADEDB_ENABLE_UBSAN": true }
+    },
+    {
+      "name": "relwithdebinfo-coverage",
+      "displayName": "RelWithDebInfo Coverage",
+      "inherits": ["relwithdebinfo"],
+      "cacheVariables": { "KADEDB_ENABLE_COVERAGE": true }
+    },
+    {
+      "name": "debug-local-install",
+      "displayName": "Debug (local install)",
+      "inherits": ["debug"],
+      "cacheVariables": { "CMAKE_INSTALL_PREFIX": "${sourceDir}/install" }
     }
   ],
   "buildPresets": [
     { "name": "debug", "configurePreset": "debug" },
     { "name": "release", "configurePreset": "release" },
-    { "name": "relwithdebinfo", "configurePreset": "relwithdebinfo" }
+    { "name": "relwithdebinfo", "configurePreset": "relwithdebinfo" },
+    { "name": "linux-gcc-debug", "configurePreset": "linux-gcc-debug" },
+    { "name": "linux-gcc-release", "configurePreset": "linux-gcc-release" },
+    { "name": "linux-gcc-relwithdebinfo", "configurePreset": "linux-gcc-relwithdebinfo" },
+    { "name": "linux-clang-debug", "configurePreset": "linux-clang-debug" },
+    { "name": "linux-clang-release", "configurePreset": "linux-clang-release" },
+    { "name": "linux-clang-relwithdebinfo", "configurePreset": "linux-clang-relwithdebinfo" },
+    { "name": "macos-clang-debug", "configurePreset": "macos-clang-debug" },
+    { "name": "macos-clang-release", "configurePreset": "macos-clang-release" },
+    { "name": "macos-clang-relwithdebinfo", "configurePreset": "macos-clang-relwithdebinfo" },
+    { "name": "windows-vs2022-debug", "configurePreset": "windows-vs2022", "configuration": "Debug" },
+    { "name": "windows-vs2022-release", "configurePreset": "windows-vs2022", "configuration": "Release" },
+    { "name": "windows-vs2022-relwithdebinfo", "configurePreset": "windows-vs2022", "configuration": "RelWithDebInfo" },
+    { "name": "macos-xcode-debug", "configurePreset": "macos-xcode", "configuration": "Debug" },
+    { "name": "macos-xcode-release", "configurePreset": "macos-xcode", "configuration": "Release" },
+    { "name": "macos-xcode-relwithdebinfo", "configurePreset": "macos-xcode", "configuration": "RelWithDebInfo" },
+    { "name": "debug-asan", "configurePreset": "debug-asan" },
+    { "name": "debug-ubsan", "configurePreset": "debug-ubsan" },
+    { "name": "relwithdebinfo-coverage", "configurePreset": "relwithdebinfo-coverage" },
+    { "name": "debug-local-install", "configurePreset": "debug-local-install" }
   ]
 }

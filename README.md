@@ -154,7 +154,7 @@ By unifying HPC, IoT, and multi-model storage in a single repository, KadeDB:
 ### Prerequisites
 
 - C++17 compatible compiler (GCC 8+, Clang 7+, MSVC 2019+)
-- CMake 3.16 or higher
+- CMake 3.21 or higher (recommended to use CMake/CTest Presets)
 - Git
 - [RocksDB](https://github.com/facebook/rocksdb) (6.8.1 or later)
 - [ANTLR4](https://www.antlr.org/) (4.9 or later)
@@ -222,8 +222,10 @@ sudo make uninstall
 
 #### Using CMake Presets (recommended)
 
+Presets require CMake/CTest 3.21+.
+
 ```bash
-# Configure
+# Configure (Linux/macOS Ninja)
 cmake -S . --preset debug
 
 # Build
@@ -231,6 +233,39 @@ cmake --build --preset debug --parallel
 
 # Install to a local prefix (optional)
 cmake --install build/debug --prefix "$PWD/install"
+```
+
+Common platform/toolchain presets:
+
+```bash
+# Linux (GCC)
+cmake -S . --preset linux-gcc-release
+cmake --build --preset linux-gcc-release -j
+
+# Linux (Clang)
+cmake -S . --preset linux-clang-relwithdebinfo
+cmake --build --preset linux-clang-relwithdebinfo -j
+
+# macOS (Apple Clang)
+cmake -S . --preset macos-clang-debug
+cmake --build --preset macos-clang-debug -j
+
+# Windows (Visual Studio 2022, multi-config)
+cmake -S . --preset windows-vs2022
+cmake --build --preset windows-vs2022-debug -j
+cmake --build --preset windows-vs2022-release -j
+```
+
+Run tests with CTest Presets:
+
+```bash
+# Single-config generators (Ninja) on Linux/macOS
+ctest --preset debug
+ctest --preset linux-gcc-release
+
+# Windows (Visual Studio multi-config)
+ctest --preset windows-vs2022-debug
+ctest --preset windows-vs2022-relwithdebinfo
 ```
 
 #### RocksDB options for KadeDB-Lite

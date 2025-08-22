@@ -1,0 +1,36 @@
+{
+  "version": 3,
+  "testPresets": [
+    {
+      "name": "debug",
+      "configurePreset": "debug",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "release",
+      "configurePreset": "release",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "relwithdebinfo",
+      "configurePreset": "relwithdebinfo",
+      "output": { "outputOnFailure": true }
+    },
+
+    { "name": "linux-gcc-debug", "configurePreset": "linux-gcc-debug", "output": { "outputOnFailure": true } },
+    { "name": "linux-gcc-release", "configurePreset": "linux-gcc-release", "output": { "outputOnFailure": true } },
+    { "name": "linux-gcc-relwithdebinfo", "configurePreset": "linux-gcc-relwithdebinfo", "output": { "outputOnFailure": true } },
+
+    { "name": "linux-clang-debug", "configurePreset": "linux-clang-debug", "output": { "outputOnFailure": true } },
+    { "name": "linux-clang-release", "configurePreset": "linux-clang-release", "output": { "outputOnFailure": true } },
+    { "name": "linux-clang-relwithdebinfo", "configurePreset": "linux-clang-relwithdebinfo", "output": { "outputOnFailure": true } },
+
+    { "name": "macos-clang-debug", "configurePreset": "macos-clang-debug", "output": { "outputOnFailure": true } },
+    { "name": "macos-clang-release", "configurePreset": "macos-clang-release", "output": { "outputOnFailure": true } },
+    { "name": "macos-clang-relwithdebinfo", "configurePreset": "macos-clang-relwithdebinfo", "output": { "outputOnFailure": true } },
+
+    { "name": "windows-vs2022-debug", "configurePreset": "windows-vs2022", "configuration": "Debug", "output": { "outputOnFailure": true } },
+    { "name": "windows-vs2022-release", "configurePreset": "windows-vs2022", "configuration": "Release", "output": { "outputOnFailure": true } },
+    { "name": "windows-vs2022-relwithdebinfo", "configurePreset": "windows-vs2022", "configuration": "RelWithDebInfo", "output": { "outputOnFailure": true } }
+  ]
+}
