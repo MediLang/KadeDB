@@ -6,7 +6,8 @@ endif()
 
 # Optional RocksDB integration
 if(KADEDB_LITE_WITH_ROCKSDB)
-  find_package(RocksDB QUIET CONFIG)
+  # Try both Config and Module modes
+  find_package(RocksDB QUIET)
   if(RocksDB_FOUND)
     message(STATUS "RocksDB found: enabling integration")
   else()
@@ -16,8 +17,9 @@ if(KADEDB_LITE_WITH_ROCKSDB)
       include(FetchContent)
       FetchContent_Declare(
         rocksdb
-        URL https://github.com/facebook/rocksdb/archive/refs/tags/v8.11.3.tar.gz
-        URL_HASH SHA256=1b20f1a7b9657d7b3e76082404ace9e0af0c6c35e5bcfa4a507d69bbcb32a976
+        GIT_REPOSITORY https://github.com/facebook/rocksdb.git
+        GIT_TAG v8.11.3
+        GIT_SHALLOW TRUE
       )
       # Configure RocksDB to a minimal build
       set(ROCKSDB_BUILD_SHARED ON CACHE BOOL "" FORCE)
@@ -25,13 +27,21 @@ if(KADEDB_LITE_WITH_ROCKSDB)
       set(WITH_TESTS OFF CACHE BOOL "" FORCE)
       set(WITH_BENCHMARK_TOOLS OFF CACHE BOOL "" FORCE)
       set(WITH_TOOLS OFF CACHE BOOL "" FORCE)
-      set(ROCKSDB_DISABLE_GFLAGS ON CACHE BOOL "" FORCE)
+      # Minimize external deps
+      set(WITH_GFLAGS OFF CACHE BOOL "" FORCE)
+      set(WITH_SNAPPY OFF CACHE BOOL "" FORCE)
+      set(WITH_LZ4 OFF CACHE BOOL "" FORCE)
+      set(WITH_ZLIB OFF CACHE BOOL "" FORCE)
+      set(WITH_ZSTD OFF CACHE BOOL "" FORCE)
       set(FAIL_ON_WARNINGS OFF CACHE BOOL "" FORCE)
       FetchContent_MakeAvailable(rocksdb)
       # After FetchContent, RocksDB might expose target "rocksdb"
       if(TARGET rocksdb)
-        set(RocksDB_FOUND TRUE)
         set(KADEDB_ROCKSDB_TARGET rocksdb)
+        set(RocksDB_FOUND TRUE)
+      elseif(TARGET rocksdb-shared)
+        set(KADEDB_ROCKSDB_TARGET rocksdb-shared)
+        set(RocksDB_FOUND TRUE)
       endif()
     else()
       message(STATUS "RocksDB not found and KADEDB_LITE_FETCH_ROCKSDB=OFF: building Lite without RocksDB")
@@ -57,9 +67,16 @@ if(RocksDB_FOUND)
     target_link_libraries(kadedb_lite PRIVATE RocksDB::rocksdb)
   elseif(DEFINED KADEDB_ROCKSDB_TARGET AND TARGET ${KADEDB_ROCKSDB_TARGET})
     target_link_libraries(kadedb_lite PRIVATE ${KADEDB_ROCKSDB_TARGET})
+  elseif(DEFINED ROCKSDB_LIBRARIES)
+    target_link_libraries(kadedb_lite PRIVATE ${ROCKSDB_LIBRARIES})
+    if(DEFINED ROCKSDB_INCLUDE_DIRS)
+      target_include_directories(kadedb_lite PRIVATE ${ROCKSDB_INCLUDE_DIRS})
+    endif()
   else()
     message(WARNING "RocksDB found but no recognizable CMake target to link. Proceeding without linking.")
   endif()
+  # Ensure we link with a C++ linker since RocksDB is C++
+  set_property(TARGET kadedb_lite PROPERTY LINKER_LANGUAGE CXX)
 endif()
 
 set_target_properties(kadedb_lite PROPERTIES

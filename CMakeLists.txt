@@ -73,6 +73,7 @@ add_subdirectory(lite)
 # Tests
 if(BUILD_TESTING)
   add_subdirectory(cpp/test)
+  add_subdirectory(lite/test)
 endif()
 
 include(CMakePackageConfigHelpers)

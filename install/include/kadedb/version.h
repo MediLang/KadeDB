@@ -1,0 +1,6 @@
+#pragma once
+
+#define KADEDB_VERSION_MAJOR 0
+#define KADEDB_VERSION_MINOR 1
+#define KADEDB_VERSION_PATCH 0
+#define KADEDB_VERSION "0.1.0"

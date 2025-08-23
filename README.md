@@ -273,9 +273,17 @@ ctest --preset windows-vs2022-relwithdebinfo
 KadeDB-Lite can optionally link RocksDB. Enable it with:
 
 ```bash
-cmake -S . -B build/release --preset release \
-  -DKADEDB_LITE_WITH_ROCKSDB=ON \
-  -DKADEDB_LITE_FETCH_ROCKSDB=ON   # fetch/build if RocksDB isn't found
+# Using CMake presets (recommended)
+# System RocksDB (if available on your machine):
+cmake --preset debug -DKADEDB_LITE_WITH_ROCKSDB=ON
+cmake --build --preset debug -j
+
+# Fetch/build RocksDB from source if not found locally (will download):
+cmake --preset debug -DKADEDB_LITE_WITH_ROCKSDB=ON -DKADEDB_LITE_FETCH_ROCKSDB=ON
+cmake --build --preset debug -j
+
+# Run the Lite smoke test
+ctest --preset debug -R kadedb_lite_smoke_test --output-on-failure
 ```
 
 #### Build Options
