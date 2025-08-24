@@ -87,7 +87,62 @@
           1
         ],
         "status": "pending",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement Value Class Hierarchy",
+            "description": "Create the core Value class hierarchy for representing different data types in KadeDB.",
+            "dependencies": [],
+            "details": "Implement the following classes:\n- Abstract `Value` base class with virtual methods for type identification, conversion, and comparison\n- Concrete value types: `IntegerValue`, `FloatValue`, `StringValue`, `BooleanValue`, `NullValue`\n- Include appropriate constructors, accessors, and type conversion methods\n- Implement comparison operators and equality checking\n- Add a ValueType enum to identify different value types\n- Create a ValueFactory for creating values from different input types",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Implement Schema Definition Classes",
+            "description": "Create classes for defining database schemas including columns, tables, and documents.",
+            "dependencies": [],
+            "details": "Implement the following classes:\n- `Column` class with name, type, constraints (nullable, unique, etc.)\n- `TableSchema` class containing column definitions and primary key information\n- `DocumentSchema` class for flexible document structures\n- `Row` class for representing a row of data in a table\n- `SchemaValidator` for validating data against schemas\n- Add methods for schema modification and validation",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Implement Result Set Representation",
+            "description": "Create classes for representing query results in a consistent format.",
+            "dependencies": [],
+            "details": "Implement the following classes:\n- `ResultSet` class to hold query results\n- `ResultRow` class for individual rows in a result set\n- Methods for iterating through results\n- Support for metadata about the results (column names, types)\n- Conversion utilities to transform results to different formats\n- Pagination support for large result sets\n- Error handling for invalid access patterns",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Implement Serialization/Deserialization",
+            "description": "Create serialization and deserialization mechanisms for all data model primitives.",
+            "dependencies": [],
+            "details": "Implement the following:\n- Binary serialization format for all Value types\n- JSON serialization/deserialization for all data model classes\n- Schema serialization for storage and transmission\n- Version tagging for forward/backward compatibility\n- Optimized serialization for common data types\n- Error handling for corrupted or incompatible data\n- Benchmark different serialization approaches for performance",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Implement Memory Management and Copy Semantics",
+            "description": "Ensure proper memory management and define appropriate copy/move semantics for all data model classes.",
+            "dependencies": [],
+            "details": "Implement the following:\n- Define move and copy constructors/assignment operators for all classes\n- Use smart pointers (std::shared_ptr, std::unique_ptr) for ownership management\n- Implement proper destructors to prevent memory leaks\n- Add memory pooling for frequently created small objects\n- Create deep and shallow copy mechanisms where appropriate\n- Implement reference counting for large objects\n- Add debug tools for tracking memory usage and detecting leaks",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Design and Document FFI Compatibility",
+            "description": "Design the data model with FFI compatibility in mind and document the approach for C bindings.",
+            "dependencies": [],
+            "details": "Implement the following:\n- Create C-compatible struct representations of core data types\n- Implement conversion functions between C++ and C representations\n- Document memory ownership rules for FFI boundaries\n- Create example C header files showing the intended FFI interface\n- Design error handling that works across language boundaries\n- Implement opaque pointer patterns for C interfaces\n- Write comprehensive documentation on how to use the data model from C code",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
       },
       {
         "id": 3,
@@ -100,7 +155,53 @@
           2
         ],
         "status": "pending",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Define Relational Storage API Interface",
+            "description": "Finalize the RelationalStorage interface with all required methods, error handling, and documentation.",
+            "dependencies": [],
+            "details": "1. Review and refine the existing RelationalStorage interface\n2. Add detailed documentation for each method\n3. Define appropriate error codes and status returns\n4. Add any missing methods needed for MVP functionality\n5. Define the TableSchema, Row, ResultSet, and Predicate classes/structs\n6. Ensure the interface is extensible for future backend implementations",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Define Document Storage API Interface",
+            "description": "Finalize the DocumentStorage interface with all required methods, error handling, and documentation.",
+            "dependencies": [],
+            "details": "1. Review and refine the existing DocumentStorage interface\n2. Add detailed documentation for each method\n3. Define appropriate error codes and status returns\n4. Add any missing methods needed for MVP functionality (e.g., query, delete)\n5. Define the Document class/struct and its serialization methods\n6. Ensure the interface is extensible for future backend implementations",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Implement In-Memory Relational Storage",
+            "description": "Create an in-memory implementation of the RelationalStorage interface for testing and development.",
+            "dependencies": [],
+            "details": "1. Create a MemoryRelationalStorage class that implements RelationalStorage\n2. Implement internal data structures to store tables and rows\n3. Implement createTable() with validation for duplicate tables\n4. Implement insertRow() with schema validation\n5. Implement select() with filtering based on predicates\n6. Add proper error handling for all operations\n7. Optimize for development and testing use cases",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Implement In-Memory Document Storage",
+            "description": "Create an in-memory implementation of the DocumentStorage interface for testing and development.",
+            "dependencies": [],
+            "details": "1. Create a MemoryDocumentStorage class that implements DocumentStorage\n2. Implement internal data structures to store collections and documents\n3. Implement put() with validation\n4. Implement get() with proper error handling for missing documents\n5. Add any additional methods defined in the interface\n6. Optimize for development and testing use cases",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Create Unit Tests for Storage APIs",
+            "description": "Develop comprehensive unit tests for both storage APIs and their in-memory implementations.",
+            "dependencies": [],
+            "details": "1. Create test fixtures for both storage implementations\n2. Test table/collection creation with valid and invalid schemas\n3. Test data insertion with valid and invalid data\n4. Test data retrieval with various query patterns\n5. Test error handling for all edge cases (e.g., duplicate tables, missing data)\n6. Test concurrent operations if applicable\n7. Measure and document test coverage\n8. Create integration tests that use both APIs together if needed",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
       },
       {
         "id": 4,
@@ -113,7 +214,50 @@
           2
         ],
         "status": "pending",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement Tokenizer/Lexer for KadeQL",
+            "description": "Create a lexical analyzer that converts KadeQL query strings into tokens for the parser to process.",
+            "dependencies": [],
+            "details": "Implement a Tokenizer class that:\n1. Breaks input queries into tokens (keywords, identifiers, operators, literals)\n2. Handles basic SQL keywords (SELECT, FROM, WHERE, INSERT, INTO, VALUES)\n3. Recognizes operators (=, <, >, <=, >=, !=) and delimiters\n4. Supports string and numeric literals\n5. Includes position tracking for error reporting\n\nExample implementation:\n```cpp\nenum class TokenType {\n  SELECT, FROM, WHERE, INSERT, INTO, VALUES,\n  IDENTIFIER, STRING_LITERAL, NUMBER_LITERAL,\n  EQUALS, LESS_THAN, GREATER_THAN, // etc.\n  COMMA, SEMICOLON, LPAREN, RPAREN,\n  END_OF_INPUT\n};\n\nstruct Token {\n  TokenType type;\n  std::string value;\n  size_t line;\n  size_t column;\n};\n\nclass Tokenizer {\npublic:\n  explicit Tokenizer(const std::string& input);\n  Token next();\n  Token peek();\n  bool hasMore();\nprivate:\n  // Implementation details\n};\n```",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Implement AST Structure for KadeQL",
+            "description": "Design and implement the Abstract Syntax Tree (AST) classes to represent parsed KadeQL statements.",
+            "dependencies": [],
+            "details": "Create a hierarchy of classes to represent the parsed query structure:\n\n1. Base Statement class with common functionality\n2. SelectStatement class with fields for columns, table name, and WHERE conditions\n3. InsertStatement class with table name and values to insert\n4. Expression classes for WHERE clause conditions\n5. Predicate classes for comparison operations\n\nExample implementation:\n```cpp\nclass Statement {\npublic:\n  virtual ~Statement() = default;\n  virtual StatementType type() const = 0;\n};\n\nclass SelectStatement : public Statement {\npublic:\n  StatementType type() const override { return StatementType::SELECT; }\n  std::vector<std::string> columns;\n  std::string table;\n  std::unique_ptr<Expression> whereClause;\n};\n\nclass InsertStatement : public Statement {\npublic:\n  StatementType type() const override { return StatementType::INSERT; }\n  std::string table;\n  std::vector<std::string> columns;\n  std::vector<std::vector<std::unique_ptr<Expression>>> values;\n};\n```",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Implement SELECT Statement Parser",
+            "description": "Create a recursive descent parser for SELECT statements with basic WHERE clauses.",
+            "dependencies": [
+              "4.1",
+              "4.2"
+            ],
+            "details": "Implement the SELECT statement parser that:\n\n1. Parses the SELECT keyword followed by column names or * for all columns\n2. Handles the FROM clause with table name\n3. Processes optional WHERE clauses with comparison operators\n4. Builds the appropriate SelectStatement AST node\n5. Provides clear error messages for syntax errors\n\nExample implementation:\n```cpp\nstd::unique_ptr<SelectStatement> parseSelectStatement(Tokenizer& tokenizer) {\n  // Consume SELECT keyword\n  tokenizer.consume(TokenType::SELECT);\n  \n  auto stmt = std::make_unique<SelectStatement>();\n  \n  // Parse column list\n  if (tokenizer.peek().type == TokenType::ASTERISK) {\n    tokenizer.consume(TokenType::ASTERISK);\n    stmt->columns.push_back(\"*\");\n  } else {\n    // Parse comma-separated column names\n    do {\n      Token columnToken = tokenizer.consume(TokenType::IDENTIFIER);\n      stmt->columns.push_back(columnToken.value);\n      \n      if (tokenizer.peek().type != TokenType::COMMA) {\n        break;\n      }\n      tokenizer.consume(TokenType::COMMA);\n    } while (true);\n  }\n  \n  // Parse FROM clause\n  tokenizer.consume(TokenType::FROM);\n  Token tableToken = tokenizer.consume(TokenType::IDENTIFIER);\n  stmt->table = tableToken.value;\n  \n  // Parse optional WHERE clause\n  if (tokenizer.peek().type == TokenType::WHERE) {\n    tokenizer.consume(TokenType::WHERE);\n    stmt->whereClause = parseExpression(tokenizer);\n  }\n  \n  return stmt;\n}\n```",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Implement INSERT Statement Parser and Error Handling",
+            "description": "Create a parser for INSERT statements and implement robust error handling throughout the parser.",
+            "dependencies": [
+              "4.1",
+              "4.2"
+            ],
+            "details": "Implement the INSERT statement parser and error handling that:\n\n1. Parses the INSERT INTO keyword followed by table name\n2. Handles optional column list in parentheses\n3. Processes VALUES keyword and the values to insert\n4. Builds the appropriate InsertStatement AST node\n5. Implements a comprehensive error handling system with:\n   - Descriptive error messages including position information\n   - Recovery mechanisms where appropriate\n   - Validation of semantic constraints\n\nExample implementation:\n```cpp\nstd::unique_ptr<InsertStatement> parseInsertStatement(Tokenizer& tokenizer) {\n  // Consume INSERT INTO keywords\n  tokenizer.consume(TokenType::INSERT);\n  tokenizer.consume(TokenType::INTO);\n  \n  auto stmt = std::make_unique<InsertStatement>();\n  \n  // Parse table name\n  Token tableToken = tokenizer.consume(TokenType::IDENTIFIER);\n  stmt->table = tableToken.value;\n  \n  // Parse optional column list\n  if (tokenizer.peek().type == TokenType::LPAREN) {\n    tokenizer.consume(TokenType::LPAREN);\n    \n    do {\n      Token columnToken = tokenizer.consume(TokenType::IDENTIFIER);\n      stmt->columns.push_back(columnToken.value);\n      \n      if (tokenizer.peek().type != TokenType::COMMA) {\n        break;\n      }\n      tokenizer.consume(TokenType::COMMA);\n    } while (true);\n    \n    tokenizer.consume(TokenType::RPAREN);\n  }\n  \n  // Parse VALUES keyword and values\n  tokenizer.consume(TokenType::VALUES);\n  \n  do {\n    tokenizer.consume(TokenType::LPAREN);\n    std::vector<std::unique_ptr<Expression>> rowValues;\n    \n    do {\n      rowValues.push_back(parseExpression(tokenizer));\n      \n      if (tokenizer.peek().type != TokenType::COMMA) {\n        break;\n      }\n      tokenizer.consume(TokenType::COMMA);\n    } while (true);\n    \n    tokenizer.consume(TokenType::RPAREN);\n    stmt->values.push_back(std::move(rowValues));\n    \n    if (tokenizer.peek().type != TokenType::COMMA) {\n      break;\n    }\n    tokenizer.consume(TokenType::COMMA);\n  } while (true);\n  \n  return stmt;\n}\n\nclass ParseError : public std::runtime_error {\npublic:\n  ParseError(const std::string& message, size_t line, size_t column)\n    : std::runtime_error(formatMessage(message, line, column)),\n      line_(line), column_(column) {}\n  \n  size_t line() const { return line_; }\n  size_t column() const { return column_; }\n  \nprivate:\n  size_t line_;\n  size_t column_;\n  \n  static std::string formatMessage(const std::string& message, size_t line, size_t column) {\n    return \"Parse error at line \" + std::to_string(line) + \n           \", column \" + std::to_string(column) + \": \" + message;\n  }\n};\n```",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
       },
       {
         "id": 5,
@@ -127,7 +271,65 @@
           4
         ],
         "status": "pending",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement QueryExecutor Interface and Core",
+            "description": "Create the QueryExecutor class with the core execution framework that routes statements to appropriate handlers.",
+            "dependencies": [],
+            "details": "Implement the QueryExecutor class with constructor, execute() method, and the basic routing logic for different statement types. Include proper error handling and result type definitions. Set up the class structure with private methods for different statement types. Ensure the interface is clean and extensible for future statement types.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Implement SELECT Statement Execution",
+            "description": "Develop the executeSelect() method to process SELECT statements against the storage layer.",
+            "dependencies": [
+              "5.1"
+            ],
+            "details": "Implement the executeSelect() method that translates a SelectStatement into storage API calls. Handle column projection, table identification, and WHERE clause translation. Create a ResultSet structure to hold query results. Implement proper error handling for cases like non-existent tables or columns. Test with various SELECT statement patterns including simple selects and those with WHERE clauses.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Implement INSERT Statement Execution",
+            "description": "Develop the executeInsert() method to process INSERT statements against the storage layer.",
+            "dependencies": [
+              "5.1"
+            ],
+            "details": "Implement the executeInsert() method that translates an InsertStatement into storage API calls. Handle value validation against table schema, proper error reporting for schema mismatches, and successful insertion confirmation. Ensure proper type conversion between the query representation and storage layer requirements. Test with various INSERT patterns including single and multi-value inserts.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Implement Basic Query Optimization",
+            "description": "Add simple query optimization for basic predicates to improve execution efficiency.",
+            "dependencies": [
+              "5.2",
+              "5.3"
+            ],
+            "details": "Implement a basic query optimizer that can reorder operations for efficiency. Focus on predicate pushdown to minimize data scanning. Optimize simple WHERE clauses by leveraging storage layer filtering capabilities. Implement predicate simplification for common patterns. Document optimization strategies used. Remember to prioritize correctness over performance for the MVP.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Create Integration and End-to-End Tests",
+            "description": "Develop comprehensive tests that verify the query executor works correctly with the parser and storage components.",
+            "dependencies": [
+              "5.1",
+              "5.2",
+              "5.3",
+              "5.4"
+            ],
+            "details": "Create integration tests that combine the parser, executor, and storage components. Develop end-to-end test cases covering SELECT and INSERT operations with various complexity levels. Test error handling and edge cases across the entire execution path. Verify result correctness against expected outputs. Include performance benchmarks for basic operations to establish baselines for future optimization.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
       },
       {
         "id": 6,
@@ -228,7 +430,51 @@
           1
         ],
         "status": "pending",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement RocksDB C API Integration",
+            "description": "Set up the integration with RocksDB C API including initialization of the necessary structures and handling of the core RocksDB objects.",
+            "dependencies": [],
+            "details": "Create the basic structure for KadeDB-Lite with RocksDB integration:\n1. Define the kadedb_lite_t structure to hold RocksDB handles\n2. Implement initialization of RocksDB options, read options, and write options\n3. Set up proper memory management for RocksDB objects\n4. Create header files with appropriate function declarations\n5. Implement proper error handling for RocksDB operations",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Implement Basic Storage Operations",
+            "description": "Implement the core storage operations for KadeDB-Lite including database initialization, opening, closing, and basic key-value operations.",
+            "dependencies": [
+              "7.1"
+            ],
+            "details": "Implement the following functions:\n1. kadedb_lite_open() - Open or create a database at the specified path\n2. kadedb_lite_close() - Close the database and clean up resources\n3. kadedb_lite_put() - Store a key-value pair in the database\n4. kadedb_lite_get() - Retrieve a value by key from the database\n5. kadedb_lite_delete() - Remove a key-value pair from the database\n\nEnsure proper error handling and memory management for all operations.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Implement Configuration Options",
+            "description": "Create a configuration system for KadeDB-Lite that allows customization of RocksDB behavior through options.",
+            "dependencies": [
+              "7.1"
+            ],
+            "details": "1. Define a kadedb_lite_options_t structure to hold configuration options\n2. Implement functions to create, modify, and destroy option objects\n3. Add support for common RocksDB options such as:\n   - Create if missing flag\n   - Error if exists flag\n   - Compression options\n   - Cache size configuration\n   - Write buffer size\n   - Max open files\n4. Implement option application logic in the database open function",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Create Unit Tests for KadeDB-Lite",
+            "description": "Develop comprehensive unit tests for all KadeDB-Lite operations to ensure correct functionality.",
+            "dependencies": [
+              "7.2",
+              "7.3"
+            ],
+            "details": "Create unit tests that verify:\n1. Database creation, opening, and closing\n2. Basic put/get/delete operations with various data sizes\n3. Error handling for invalid operations (e.g., getting non-existent keys)\n4. Configuration options application and effects\n5. Memory management (no leaks)\n6. Edge cases such as empty keys/values\n7. Concurrent operations if supported\n\nUse a testing framework compatible with C and ensure tests can be run automatically.",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
       },
       {
         "id": 8,
@@ -241,7 +487,40 @@
           7
         ],
         "status": "pending",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement Query Parser for KadeDB-Lite",
+            "description": "Create a minimal query parser that can parse basic SELECT and INSERT operations for KadeDB-Lite.",
+            "dependencies": [],
+            "details": "Implement the `parse_query()` function that can:\n1. Tokenize input query strings\n2. Identify query type (SELECT or INSERT)\n3. Extract table names and basic conditions\n4. Parse column names and values\n5. Return a properly structured `parsed_query_t` object\n\nEnsure proper error handling for malformed queries and memory management for parsed components.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Develop Query-to-RocksDB Mapping Logic",
+            "description": "Implement the logic to map parsed queries to appropriate RocksDB operations.",
+            "dependencies": [
+              "8.1"
+            ],
+            "details": "Complete the `kadedb_lite_execute_query()` function to:\n1. Handle SELECT queries by translating them to RocksDB get/iterate operations\n2. Handle INSERT queries by translating them to RocksDB put operations\n3. Implement proper result set creation and management\n4. Add error handling for database operations\n5. Ensure proper memory management for query results",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Create Tests for Query Execution and Error Handling",
+            "description": "Develop comprehensive tests for the query layer functionality and error handling.",
+            "dependencies": [
+              "8.1",
+              "8.2"
+            ],
+            "details": "Create test cases that:\n1. Test basic SELECT queries with various conditions\n2. Test INSERT operations with different data types\n3. Verify error handling for malformed queries\n4. Test edge cases like empty tables or non-existent tables\n5. Verify memory management (no leaks) during query execution\n6. Test performance with larger datasets",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
       },
       {
         "id": 9,
@@ -254,7 +533,28 @@
           7
         ],
         "status": "pending",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement Sync API Stubs",
+            "description": "Create the header file and implementation for the synchronization API stubs in KadeDB-Lite.",
+            "dependencies": [],
+            "details": "1. Create kadedb_lite_sync.h with the specified struct and function declarations\n2. Implement kadedb_lite_sync.c with stub implementations that return success codes\n3. Add internal state tracking for sync configuration and status\n4. Ensure proper memory management for status strings\n5. Add appropriate error handling for invalid parameters\n6. Update the build system to include the new files",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Create Tests for Sync API Stubs",
+            "description": "Develop test cases to verify the synchronization API stubs function correctly.",
+            "dependencies": [
+              "9.1"
+            ],
+            "details": "1. Create test_kadedb_lite_sync.c with test cases for all sync functions\n2. Test configuration parsing with various valid and invalid inputs\n3. Verify status reporting works correctly\n4. Test that sync operations don't interfere with normal database operations\n5. Verify memory management (no leaks when using status_out)\n6. Test error handling for edge cases (NULL parameters, etc.)\n7. Update the test build system to include the new tests",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
       },
       {
         "id": 10,
@@ -269,7 +569,53 @@
           9
         ],
         "status": "pending",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement C++ Example Application",
+            "description": "Create a simple C++ application demonstrating the usage of KadeDB core API",
+            "dependencies": [],
+            "details": "Develop a C++ example in `examples/cpp_example/` that demonstrates:\n- Database creation and opening\n- Basic CRUD operations using the core API\n- Query execution with KadeQL\n- Error handling\n\nThe example should be well-commented to serve as a tutorial for new users. Include a CMakeLists.txt file to build the example and document how to run it in a README.md file.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Implement C Example Application",
+            "description": "Create a C application demonstrating the usage of KadeDB through the C ABI",
+            "dependencies": [
+              "10.1"
+            ],
+            "details": "Develop a C example in `examples/c_example/` that demonstrates:\n- Database initialization using the C ABI\n- Basic CRUD operations through the C interface\n- Memory management with proper cleanup\n- Error handling\n\nEnsure the example is well-commented and includes a Makefile or CMakeLists.txt for building. Document usage instructions in a README.md file.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Complete KadeDB-Lite CLI Sample Application",
+            "description": "Finish implementing the KadeDB-Lite CLI sample application based on the provided skeleton",
+            "dependencies": [
+              "10.1",
+              "10.2"
+            ],
+            "details": "Complete the implementation of the KadeDB-Lite CLI in `examples/lite_cli/`:\n- Implement the result display functionality\n- Add command history and basic line editing\n- Support for help commands and documentation\n- Add basic data import/export commands\n\nExtend the provided skeleton code to create a fully functional CLI. Include a CMakeLists.txt file and documentation on how to build and use the CLI.",
+            "status": "pending",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Setup CI Configuration",
+            "description": "Configure CI for automated testing and building across multiple platforms",
+            "dependencies": [
+              "10.1",
+              "10.2",
+              "10.3"
+            ],
+            "details": "Set up GitHub Actions or similar CI system with the following jobs:\n- Linux build and test (Ubuntu latest)\n- macOS build and test\n- Windows build and test\n- Code coverage reporting\n- Example application builds\n\nEnsure the CI configuration includes:\n- Caching of dependencies to speed up builds\n- Matrix builds for different compiler versions\n- Automated unit test execution\n- Building and testing all example applications\n- Proper reporting of test results",
+            "status": "pending",
+            "testStrategy": ""
+          }
+        ]
       }
     ],
     "metadata": {
