@@ -6,6 +6,8 @@ endif()
 
 add_library(kadedb_core ${LIB_TYPE}
   src/core/version.cpp
+  src/core/value.cpp
+  src/core/schema.cpp
 )
 
 add_library(KadeDB::kadedb_core ALIAS kadedb_core)
@@ -44,3 +46,4 @@ install(TARGETS kadedb_core
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
+

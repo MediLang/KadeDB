@@ -86,7 +86,7 @@
         "dependencies": [
           1
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -94,7 +94,7 @@
             "description": "Create the core Value class hierarchy for representing different data types in KadeDB.",
             "dependencies": [],
             "details": "Implement the following classes:\n- Abstract `Value` base class with virtual methods for type identification, conversion, and comparison\n- Concrete value types: `IntegerValue`, `FloatValue`, `StringValue`, `BooleanValue`, `NullValue`\n- Include appropriate constructors, accessors, and type conversion methods\n- Implement comparison operators and equality checking\n- Add a ValueType enum to identify different value types\n- Create a ValueFactory for creating values from different input types",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
