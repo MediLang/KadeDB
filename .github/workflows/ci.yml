@@ -1,13 +1,42 @@
 name: CI
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
-    branches: [ main ]
+    branches: [ '**' ]
   pull_request:
     branches: [ main ]
 
 jobs:
+  # Lightweight dev CI for non-main branch pushes
+  build_dev:
+    if: github.event_name == 'push' && github.ref != 'refs/heads/main'
+    name: Dev Build and Test (ubuntu-latest - Debug)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Ninja (Ubuntu)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build
+
+      - name: Configure (Debug)
+        run: cmake -S . --preset debug
+
+      - name: Build (Debug)
+        run: cmake --build --preset debug --parallel
+
+      - name: Test (Debug)
+        run: ctest --preset debug --output-on-failure
+
+  # Full CI on main branch and PRs
   build:
+    if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
     name: Build and Test (${{ matrix.os }} - ${{ matrix.build_type }})
     runs-on: ${{ matrix.os }}
     strategy:
@@ -103,6 +132,7 @@ jobs:
           path: install/
 
   coverage:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     name: Coverage (ubuntu-latest)
     runs-on: ubuntu-latest
     steps:
