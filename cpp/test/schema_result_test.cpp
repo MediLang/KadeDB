@@ -41,7 +41,8 @@ int main() {
 
   assert(rs.rowCount() == 1);
   rs.reset();
-  assert(rs.next());
+  // Ensure next() is executed even in Release (asserts may be compiled out)
+  rs.next();
   const auto& r0 = rs.current();
   assert(static_cast<const IntegerValue&>(r0.at(0)).asInt() == 1);
   assert(static_cast<const StringValue&>(r0.at(1)).asString() == std::string("alice"));

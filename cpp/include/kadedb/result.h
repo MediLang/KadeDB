@@ -4,6 +4,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <stdexcept>
 #include <vector>
 
 #include "kadedb/schema.h"
@@ -39,15 +40,28 @@ public:
   const ResultRow& row(size_t idx) const { return rows_.at(idx); }
 
   // Simple forward iteration
-  void reset() { cursor_ = 0; }
-  bool next() { return cursor_ < rows_.size() ? ++cursor_ <= rows_.size() : false; }
-  const ResultRow& current() const { return rows_.at(cursor_ - 1); }
+  // Iteration API: zero-based cursor, starts before first (-1)
+  void reset() { cursor_ = static_cast<size_t>(-1); }
+  bool next() {
+    // Move to the next row if available
+    if (cursor_ + 1 < rows_.size()) {
+      ++cursor_;
+      return true;
+    }
+    return false;
+  }
+  const ResultRow& current() const {
+    if (cursor_ >= rows_.size()) {
+      throw std::out_of_range("ResultSet::current(): no current row");
+    }
+    return rows_.at(cursor_);
+  }
 
 private:
   std::vector<std::string> columnNames_;
   std::vector<ColumnType> columnTypes_;
   std::vector<ResultRow> rows_;
-  size_t cursor_ = 0; // 1-based position when iterating; 0 means before first
+  size_t cursor_ = static_cast<size_t>(-1); // index of current row; -1 means before first
 };
 
 } // namespace kadedb
