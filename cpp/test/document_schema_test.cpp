@@ -41,10 +41,12 @@ int main() {
 
   // Uniqueness checks
   std::vector<Document> docs;
-  docs.push_back(Document{});
+  // Reserve to avoid reallocation (which would require copying Documents)
+  docs.reserve(3);
+  docs.emplace_back();
   docs.back()["id"] = std::make_unique<IntegerValue>(1);
   docs.back()["name"] = std::make_unique<StringValue>(std::string{"a"});
-  docs.push_back(Document{});
+  docs.emplace_back();
   docs.back()["id"] = std::make_unique<IntegerValue>(2);
   docs.back()["name"] = std::make_unique<StringValue>(std::string{"b"});
 
@@ -52,7 +54,7 @@ int main() {
   assert(err4.empty());
 
   // Duplicate id
-  docs.push_back(Document{});
+  docs.emplace_back();
   docs.back()["id"] = std::make_unique<IntegerValue>(2);
   docs.back()["name"] = std::make_unique<StringValue>(std::string{"c"});
   auto err5 = SchemaValidator::validateUnique(ds, docs);

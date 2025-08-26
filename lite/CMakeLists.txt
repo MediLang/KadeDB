@@ -85,6 +85,11 @@ set_target_properties(kadedb_lite PROPERTIES
   VERSION ${PROJECT_VERSION}
 )
 
+if(MSVC)
+  # Ensure a .lib import library is generated for the DLL on Windows
+  set_target_properties(kadedb_lite PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+endif()
+
 install(TARGETS kadedb_lite
   EXPORT KadeDBTargets
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}

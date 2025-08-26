@@ -27,6 +27,13 @@ set_target_properties(kadedb_c PROPERTIES
   VERSION ${PROJECT_VERSION}
 )
 
+if(MSVC)
+  # Ensure a .lib import library is generated for the DLL on Windows
+  set_target_properties(kadedb_c PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+  # Silence secure CRT warnings for legacy-like C APIs
+  target_compile_definitions(kadedb_c PRIVATE _CRT_SECURE_NO_WARNINGS)
+endif()
+
 install(TARGETS kadedb_c
   EXPORT KadeDBTargets
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}

@@ -37,6 +37,7 @@ set_target_properties(kadedb_core PROPERTIES
 # Compile features/definitions
 if(MSVC)
   target_compile_definitions(kadedb_core PRIVATE _CRT_SECURE_NO_WARNINGS)
+  set_target_properties(kadedb_core PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
 endif()
 
 # Install
@@ -46,4 +47,3 @@ install(TARGETS kadedb_core
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
-
