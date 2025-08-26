@@ -103,7 +103,7 @@
             "description": "Create classes for defining database schemas including columns, tables, and documents.",
             "dependencies": [],
             "details": "Implement the following classes:\n- `Column` class with name, type, constraints (nullable, unique, etc.)\n- `TableSchema` class containing column definitions and primary key information\n- `DocumentSchema` class for flexible document structures\n- `Row` class for representing a row of data in a table\n- `SchemaValidator` for validating data against schemas\n- Add methods for schema modification and validation",
-            "status": "in-progress",
+            "status": "done",
             "testStrategy": ""
           },
           {
