@@ -32,6 +32,17 @@ target_compile_features(kadedb_schema_result_test PRIVATE cxx_std_17)
 
 add_test(NAME kadedb_schema_result_test COMMAND kadedb_schema_result_test)
 
+# Result utilities (CSV/JSON/Pagination) tests
+add_executable(kadedb_result_utils_test
+  result_utils_test.cpp
+)
+
+target_link_libraries(kadedb_result_utils_test PRIVATE KadeDB::kadedb_core)
+
+target_compile_features(kadedb_result_utils_test PRIVATE cxx_std_17)
+
+add_test(NAME kadedb_result_utils_test COMMAND kadedb_result_utils_test)
+
 # Document schema tests
 add_executable(kadedb_document_schema_test
   document_schema_test.cpp

@@ -189,6 +189,92 @@ int KadeDB_DocumentSchema_SetFieldFlags(KDB_DocumentSchema* schema,
                                         int nullable,
                                         int unique);
 
+// ---------- Result conversion & pagination utilities ----------
+
+// Convert a tabular result (columns + rows) to CSV.
+// - column_names: array of UTF-8, NUL-terminated strings; may be NULL if include_header==0
+// - types: array of KDB_ColumnType of length column_count (may be NULL; used only for metadata consistency)
+// - rows: array of KDB_RowView of length row_count; each row.values must have at least column_count items
+// - delimiter: CSV delimiter character (e.g., ',')
+// - include_header: 0/1 to include header row from column_names
+// - out_buf: optional output buffer to receive CSV (may be NULL to query required length)
+// - out_buf_len: size in bytes of out_buf
+// - out_required_len: if non-NULL, set to required byte length (including terminating NUL)
+// Returns 1 on success (possibly truncated if out_buf too small), 0 on error (e.g., invalid args).
+int KadeDB_Result_ToCSV(const char* const* column_names,
+                        const KDB_ColumnType* types,
+                        unsigned long long column_count,
+                        const KDB_RowView* rows,
+                        unsigned long long row_count,
+                        char delimiter,
+                        int include_header,
+                        char* out_buf,
+                        unsigned long long out_buf_len,
+                        unsigned long long* out_required_len);
+
+// Convert a tabular result (columns + rows) to JSON.
+// - include_metadata: 0 to emit an array of row objects; 1 to emit an object with {columns, types, rows}
+// Buffer semantics are identical to KadeDB_Result_ToCSV.
+int KadeDB_Result_ToJSON(const char* const* column_names,
+                         const KDB_ColumnType* types,
+                         unsigned long long column_count,
+                         const KDB_RowView* rows,
+                         unsigned long long row_count,
+                         int include_metadata,
+                         char* out_buf,
+                         unsigned long long out_buf_len,
+                         unsigned long long* out_required_len);
+
+// Extended CSV: control quoting behavior
+int KadeDB_Result_ToCSVEx(const char* const* column_names,
+                          const KDB_ColumnType* types,
+                          unsigned long long column_count,
+                          const KDB_RowView* rows,
+                          unsigned long long row_count,
+                          char delimiter,
+                          int include_header,
+                          int always_quote,
+                          char quote_char,
+                          char* out_buf,
+                          unsigned long long out_buf_len,
+                          unsigned long long* out_required_len);
+
+// Extended JSON: pretty-print by setting indent (spaces per level, 0 for compact)
+int KadeDB_Result_ToJSONEx(const char* const* column_names,
+                           const KDB_ColumnType* types,
+                           unsigned long long column_count,
+                           const KDB_RowView* rows,
+                           unsigned long long row_count,
+                           int include_metadata,
+                           int indent,
+                           char* out_buf,
+                           unsigned long long out_buf_len,
+                           unsigned long long* out_required_len);
+
+// Compute pagination bounds.
+// - total_rows: total number of rows
+// - page_size: 0 means all rows in a single page; otherwise positive page size
+// - page_index: zero-based page index
+// Outputs [start, end) bounds and total_pages. Returns 1 on success, 0 on error (e.g., page_index out of range).
+int KadeDB_Paginate(unsigned long long total_rows,
+                    unsigned long long page_size,
+                    unsigned long long page_index,
+                    unsigned long long* out_start,
+                    unsigned long long* out_end,
+                    unsigned long long* out_total_pages);
+
+// Convenience: compute only total pages
+int KadeDB_Paginate_TotalPages(unsigned long long total_rows,
+                               unsigned long long page_size,
+                               unsigned long long* out_total_pages);
+
+// Convenience: compute bounds for a page; returns 1 on success, 0 on error
+int KadeDB_Paginate_Bounds(unsigned long long total_rows,
+                           unsigned long long page_size,
+                           unsigned long long page_index,
+                           unsigned long long* out_start,
+                           unsigned long long* out_end);
+
 #ifdef __cplusplus
 }
 #endif

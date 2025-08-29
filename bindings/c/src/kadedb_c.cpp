@@ -3,6 +3,7 @@
 
 #include "kadedb/schema.h"
 #include "kadedb/value.h"
+#include "kadedb/result.h"
 
 #include <cstring>
 #include <cmath>
@@ -444,4 +445,197 @@ int KadeDB_DocumentSchema_SetNumericConstraints(KDB_DocumentSchema* schema,
   return 1;
 }
 
+}
+
+// ---------------- Result conversion & pagination (C API) ----------------
+
+using namespace kadedb;
+
+static ColumnType to_cpp_column_type(KDB_ColumnType t);
+
+extern "C" int KadeDB_Result_ToCSVEx(const char* const* column_names,
+                                     const KDB_ColumnType* types,
+                                     unsigned long long column_count,
+                                     const KDB_RowView* rows,
+                                     unsigned long long row_count,
+                                     char delimiter,
+                                     int include_header,
+                                     int always_quote,
+                                     char quote_char,
+                                     char* out_buf,
+                                     unsigned long long out_buf_len,
+                                     unsigned long long* out_required_len) {
+  try {
+    // Build ResultSet
+    std::vector<std::string> cols;
+    cols.reserve(static_cast<size_t>(column_count));
+    for (unsigned long long i = 0; i < column_count; ++i) {
+      cols.emplace_back(column_names && column_names[i] ? std::string(column_names[i]) : std::string());
+    }
+    std::vector<ColumnType> ctypes;
+    ctypes.reserve(static_cast<size_t>(column_count));
+    for (unsigned long long i = 0; i < column_count; ++i) {
+      ctypes.emplace_back(types ? to_cpp_column_type(types[i]) : ColumnType::Null);
+    }
+    ResultSet rs(std::move(cols), std::move(ctypes));
+    for (unsigned long long r = 0; r < row_count; ++r) {
+      const auto& rv = rows[r];
+      std::vector<std::unique_ptr<Value>> vals;
+      vals.reserve(static_cast<size_t>(column_count));
+      for (unsigned long long c = 0; c < column_count; ++c) {
+        if (c < rv.count) vals.emplace_back(from_c_value(rv.values[c]));
+        else vals.emplace_back(ValueFactory::createNull());
+      }
+      rs.addRow(ResultRow(std::move(vals)));
+    }
+
+    std::string s = rs.toCSV(delimiter, include_header != 0, always_quote != 0, quote_char);
+    unsigned long long need = static_cast<unsigned long long>(s.size()) + 1ULL;
+    if (out_required_len) *out_required_len = need;
+    if (!out_buf || out_buf_len == 0) return 1;
+    // Write up to out_buf_len - 1 and NUL-terminate
+    unsigned long long ncopy = (need <= out_buf_len) ? (need - 1ULL) : (out_buf_len - 1ULL);
+    std::memcpy(out_buf, s.data(), static_cast<size_t>(ncopy));
+    out_buf[ncopy] = '\0';
+    return 1;
+  } catch (...) {
+    return 0;
+  }
+}
+
+extern "C" int KadeDB_Result_ToCSV(const char* const* column_names,
+                                    const KDB_ColumnType* types,
+                                    unsigned long long column_count,
+                                    const KDB_RowView* rows,
+                                    unsigned long long row_count,
+                                    char delimiter,
+                                    int include_header,
+                                    char* out_buf,
+                                    unsigned long long out_buf_len,
+                                    unsigned long long* out_required_len) {
+  return KadeDB_Result_ToCSVEx(column_names, types, column_count, rows, row_count,
+                               delimiter, include_header, /*always_quote*/0, /*quote_char*/'"',
+                               out_buf, out_buf_len, out_required_len);
+}
+
+extern "C" int KadeDB_Result_ToJSONEx(const char* const* column_names,
+                                      const KDB_ColumnType* types,
+                                      unsigned long long column_count,
+                                      const KDB_RowView* rows,
+                                      unsigned long long row_count,
+                                      int include_metadata,
+                                      int indent,
+                                      char* out_buf,
+                                      unsigned long long out_buf_len,
+                                      unsigned long long* out_required_len) {
+  try {
+    // Build ResultSet
+    std::vector<std::string> cols;
+    cols.reserve(static_cast<size_t>(column_count));
+    for (unsigned long long i = 0; i < column_count; ++i) {
+      cols.emplace_back(column_names && column_names[i] ? std::string(column_names[i]) : std::string());
+    }
+    std::vector<ColumnType> ctypes;
+    ctypes.reserve(static_cast<size_t>(column_count));
+    for (unsigned long long i = 0; i < column_count; ++i) {
+      ctypes.emplace_back(types ? to_cpp_column_type(types[i]) : ColumnType::Null);
+    }
+    ResultSet rs(std::move(cols), std::move(ctypes));
+    for (unsigned long long r = 0; r < row_count; ++r) {
+      const auto& rv = rows[r];
+      std::vector<std::unique_ptr<Value>> vals;
+      vals.reserve(static_cast<size_t>(column_count));
+      for (unsigned long long c = 0; c < column_count; ++c) {
+        if (c < rv.count) vals.emplace_back(from_c_value(rv.values[c]));
+        else vals.emplace_back(ValueFactory::createNull());
+      }
+      rs.addRow(ResultRow(std::move(vals)));
+    }
+    if (indent < 0) indent = 0;
+    std::string s = rs.toJSON(include_metadata != 0, indent);
+    unsigned long long need = static_cast<unsigned long long>(s.size()) + 1ULL;
+    if (out_required_len) *out_required_len = need;
+    if (!out_buf || out_buf_len == 0) return 1;
+    unsigned long long ncopy = (need <= out_buf_len) ? (need - 1ULL) : (out_buf_len - 1ULL);
+    std::memcpy(out_buf, s.data(), static_cast<size_t>(ncopy));
+    out_buf[ncopy] = '\0';
+    return 1;
+  } catch (...) {
+    return 0;
+  }
+}
+
+extern "C" int KadeDB_Result_ToJSON(const char* const* column_names,
+                                     const KDB_ColumnType* types,
+                                     unsigned long long column_count,
+                                     const KDB_RowView* rows,
+                                     unsigned long long row_count,
+                                     int include_metadata,
+                                     char* out_buf,
+                                     unsigned long long out_buf_len,
+                                     unsigned long long* out_required_len) {
+  return KadeDB_Result_ToJSONEx(column_names, types, column_count, rows, row_count,
+                                include_metadata, /*indent*/0,
+                                out_buf, out_buf_len, out_required_len);
+}
+
+extern "C" int KadeDB_Paginate(unsigned long long total_rows,
+                                 unsigned long long page_size,
+                                 unsigned long long page_index,
+                                 unsigned long long* out_start,
+                                 unsigned long long* out_end,
+                                 unsigned long long* out_total_pages) {
+  // Compute total pages
+  unsigned long long tp = 0ULL;
+  if (page_size == 0ULL) {
+    tp = (total_rows == 0ULL) ? 0ULL : 1ULL;
+  } else {
+    tp = (total_rows + page_size - 1ULL) / page_size;
+  }
+  if (out_total_pages) *out_total_pages = tp;
+  if (page_index >= tp) return 0;
+  unsigned long long start = 0ULL, end = 0ULL;
+  if (page_size == 0ULL) {
+    start = 0ULL;
+    end = total_rows;
+  } else {
+    start = page_index * page_size;
+    unsigned long long maxEnd = start + page_size;
+    end = maxEnd > total_rows ? total_rows : maxEnd;
+  }
+  if (out_start) *out_start = start;
+  if (out_end) *out_end = end;
+  return 1;
+}
+
+extern "C" int KadeDB_Paginate_TotalPages(unsigned long long total_rows,
+                                           unsigned long long page_size,
+                                           unsigned long long* out_total_pages) {
+  if (!out_total_pages) return 0;
+  unsigned long long tp = 0ULL;
+  if (page_size == 0ULL) tp = (total_rows == 0ULL) ? 0ULL : 1ULL;
+  else tp = (total_rows + page_size - 1ULL) / page_size;
+  *out_total_pages = tp;
+  return 1;
+}
+
+extern "C" int KadeDB_Paginate_Bounds(unsigned long long total_rows,
+                                       unsigned long long page_size,
+                                       unsigned long long page_index,
+                                       unsigned long long* out_start,
+                                       unsigned long long* out_end) {
+  unsigned long long tp = 0ULL;
+  if (page_size == 0ULL) tp = (total_rows == 0ULL) ? 0ULL : 1ULL;
+  else tp = (total_rows + page_size - 1ULL) / page_size;
+  if (page_index >= tp) return 0;
+  unsigned long long start = 0ULL, end = 0ULL;
+  if (page_size == 0ULL) { start = 0ULL; end = total_rows; }
+  else {
+    start = page_index * page_size;
+    unsigned long long maxEnd = start + page_size;
+    end = maxEnd > total_rows ? total_rows : maxEnd;
+  }
+  if (out_start) *out_start = start;
+  if (out_end) *out_end = end;
+  return 1;
 }
