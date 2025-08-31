@@ -8,6 +8,7 @@ add_library(kadedb_core ${LIB_TYPE}
   src/core/version.cpp
   src/core/value.cpp
   src/core/schema.cpp
+  src/core/serialization.cpp
 )
 
 add_library(KadeDB::kadedb_core ALIAS kadedb_core)
@@ -47,3 +48,12 @@ install(TARGETS kadedb_core
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
+
+# Benchmark executable (no external deps)
+add_executable(kadedb_serialization_bench
+  bench/serialization_bench.cpp
+)
+
+target_link_libraries(kadedb_serialization_bench PRIVATE KadeDB::kadedb_core)
+
+target_compile_features(kadedb_serialization_bench PRIVATE cxx_std_17)
