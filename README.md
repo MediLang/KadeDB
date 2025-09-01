@@ -78,7 +78,7 @@ KadeDB is a multi-model database with two complementary components:
   - Safe FFI to C++ core via C ABI or `cxx` crate
   - Zero-copy data exchange using Arrow C Data Interface
 
- 
+
 ### KadeDB-Lite (C)
 - **Language**: C
 - **Target**: IoT devices
@@ -268,6 +268,20 @@ ctest --preset windows-vs2022-debug
 ctest --preset windows-vs2022-relwithdebinfo
 ```
 
+##### Targeted unit tests
+
+These tests validate the memory/copy features described in `docs/design-notes.md`:
+
+- `kadedb_row_shallow_test` — shallow aliasing and deep conversions between `RowShallow` and `Row`.
+- `kadedb_copy_move_test` — deep copy/move semantics for `Row` and related types.
+- `kadedb_result_utils_test` — CSV escaping and JSON emission (string handling correctness).
+
+Run a subset:
+
+```bash
+ctest --output-on-failure -R "kadedb_(row_shallow|copy_move|result_utils)_test"
+```
+
 #### RocksDB options for KadeDB-Lite
 
 KadeDB-Lite can optionally link RocksDB. Enable it with:
@@ -294,6 +308,57 @@ ctest --preset debug -R kadedb_lite_smoke_test --output-on-failure
 - `-DUSE_SYSTEM_DEPS=ON/OFF`: Use system-installed dependencies (default: OFF)
 - `-DCMAKE_BUILD_TYPE=Debug/Release/RelWithDebInfo`: Set build type (default: Debug)
 - `-DCMAKE_INSTALL_PREFIX=/path`: Set installation prefix (default: /usr/local)
+
+##### Memory and Copy Semantics
+
+- `-DKADEDB_RC_STRINGS=ON/OFF`: Enable optional reference-counted storage for `StringValue` payloads (default: OFF)
+  - When ON, `kadedb::StringValue` internally holds a `std::shared_ptr<std::string>` to reduce copies of large strings.
+  - Deep-copy behavior is preserved: `StringValue::clone()` still copies string contents.
+  - Compatible with all APIs; comparisons and accessors remain content-based.
+
+- `-DKADEDB_MEM_DEBUG=ON/OFF`: Track allocation/free counters for small `Value` types (Integer, Boolean, Null)
+- `-DKADEDB_ENABLE_SMALL_OBJECT_POOL=ON/OFF`: Use a small freelist pool for small `Value` types
+
+### Row vs RowShallow
+
+KadeDB provides two row representations to balance performance and ownership semantics.
+
+- **`kadedb::Row` (deep copy)**
+  - Holds `std::unique_ptr<Value>` per cell.
+  - Copy/assignment performs deep copies by cloning each `Value`.
+  - Use when isolation between copies is required.
+
+- **`kadedb::RowShallow` (shallow copy)**
+  - Holds `std::shared_ptr<Value>` per cell.
+  - Default copy/assignment is shallow; copies share the same `Value` objects.
+  - Provides conversion helpers to/from deep rows.
+
+Example usage:
+
+```cpp
+#include <kadedb/schema.h>
+#include <kadedb/value.h>
+using namespace kadedb;
+
+// Build a deep row
+Row r(2);
+r.set(0, std::make_unique<IntegerValue>(42));
+r.set(1, std::make_unique<StringValue>("hello"));
+
+// Create a shallow row that shares cloned values
+RowShallow rs = RowShallow::fromClones(r);
+
+// Shallow copy: shares the same underlying Value pointers
+RowShallow rs2 = rs; // cheap aliasing
+
+// Convert back to a deep row (clones all shared values)
+Row r2 = rs.toRowDeep();
+```
+
+Notes:
+
+- `RowShallow::fromClones(const Row&)` performs a one-time deep clone of `Row` values, then subsequent shallow copies of `RowShallow` are O(1).
+- Mutating a shared `Value` through one `RowShallow` instance affects all aliases; call `toRowDeep()` when isolation is needed.
 
 ### Build Orchestration (Top-Level)
 

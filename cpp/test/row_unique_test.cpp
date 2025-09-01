@@ -9,10 +9,12 @@
 using namespace kadedb;
 
 int main() {
-  TableSchema schema({
-      Column{"id", ColumnType::Integer, false, true},
-      Column{"name", ColumnType::String, true, false},
-  }, "id");
+  TableSchema schema(
+      {
+          Column{"id", ColumnType::Integer, false, true},
+          Column{"name", ColumnType::String, true, false},
+      },
+      "id");
 
   // Build rows
   std::vector<Row> rows;

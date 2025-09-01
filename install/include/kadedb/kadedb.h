@@ -6,7 +6,7 @@ extern "C" {
 #endif
 
 // Returns a string literal with the KadeDB version (e.g., "0.1.0").
-const char* KadeDB_GetVersion();
+const char *KadeDB_GetVersion();
 
 #ifdef __cplusplus
 }

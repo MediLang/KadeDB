@@ -1,15 +1,15 @@
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "kadedb_lite/kadedb_lite.h"
 
 int main(void) {
-  const char* path = "./tmp_lite_db"; // RocksDB will create it if needed
-  const char* key = "hello";
-  const char* val = "world";
+  const char *path = "./tmp_lite_db"; // RocksDB will create it if needed
+  const char *key = "hello";
+  const char *val = "world";
 
-  kadedb_lite_t* db = kadedb_lite_open(path);
+  kadedb_lite_t *db = kadedb_lite_open(path);
   if (!db) {
     fprintf(stderr, "kadedb_lite_open failed\n");
     return 1;
@@ -22,7 +22,7 @@ int main(void) {
     return 2;
   }
 
-  char* out = NULL;
+  char *out = NULL;
   size_t out_len = 0;
   rc = kadedb_lite_get(db, key, &out, &out_len);
   if (rc != 0 || !out) {

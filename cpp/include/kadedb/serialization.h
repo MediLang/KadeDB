@@ -2,9 +2,9 @@
 
 #include <cstdint>
 #include <iosfwd>
-#include <stdexcept>
 #include <memory>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -18,7 +18,7 @@ namespace kadedb {
 namespace serialization_constants {
 static constexpr uint32_t MAGIC = 0x4B444256; // 'KDBV'
 static constexpr uint8_t VERSION = 1;         // bump on format changes
-}
+} // namespace serialization_constants
 
 // Error type for (de)serialization problems
 class SerializationError : public std::runtime_error {
@@ -28,40 +28,40 @@ public:
 
 // Binary serialization API
 namespace bin {
-  // Values
-  void writeValue(const Value& v, std::ostream& os);
-  std::unique_ptr<Value> readValue(std::istream& is);
+// Values
+void writeValue(const Value &v, std::ostream &os);
+std::unique_ptr<Value> readValue(std::istream &is);
 
-  // Rows
-  void writeRow(const Row& row, std::ostream& os);
-  Row readRow(std::istream& is);
+// Rows
+void writeRow(const Row &row, std::ostream &os);
+Row readRow(std::istream &is);
 
-  // TableSchema
-  void writeTableSchema(const TableSchema& schema, std::ostream& os);
-  TableSchema readTableSchema(std::istream& is);
+// TableSchema
+void writeTableSchema(const TableSchema &schema, std::ostream &os);
+TableSchema readTableSchema(std::istream &is);
 
-  // DocumentSchema
-  void writeDocumentSchema(const DocumentSchema& schema, std::ostream& os);
-  DocumentSchema readDocumentSchema(std::istream& is);
-}
+// DocumentSchema
+void writeDocumentSchema(const DocumentSchema &schema, std::ostream &os);
+DocumentSchema readDocumentSchema(std::istream &is);
+} // namespace bin
 
 // JSON serialization API (text). Produces/consumes strict JSON.
 namespace json {
-  // Values
-  std::string toJson(const Value& v);
-  std::unique_ptr<Value> fromJson(const std::string& json);
+// Values
+std::string toJson(const Value &v);
+std::unique_ptr<Value> fromJson(const std::string &json);
 
-  // Row
-  std::string toJson(const Row& row);
-  Row rowFromJson(const std::string& json);
+// Row
+std::string toJson(const Row &row);
+Row rowFromJson(const std::string &json);
 
-  // TableSchema
-  std::string toJson(const TableSchema& schema);
-  TableSchema tableSchemaFromJson(const std::string& json);
+// TableSchema
+std::string toJson(const TableSchema &schema);
+TableSchema tableSchemaFromJson(const std::string &json);
 
-  // DocumentSchema
-  std::string toJson(const DocumentSchema& schema);
-  DocumentSchema documentSchemaFromJson(const std::string& json);
-}
+// DocumentSchema
+std::string toJson(const DocumentSchema &schema);
+DocumentSchema documentSchemaFromJson(const std::string &json);
+} // namespace json
 
 } // namespace kadedb

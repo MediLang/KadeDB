@@ -14,29 +14,43 @@
 
 using namespace kadedb;
 
-struct Stat { double ms_serialize{}; double ms_deserialize{}; };
+struct Stat {
+  double ms_serialize{};
+  double ms_deserialize{};
+};
 
-template <class Fun>
-static double time_ms(size_t iters, Fun&& f) {
+template <class Fun> static double time_ms(size_t iters, Fun &&f) {
   auto start = std::chrono::high_resolution_clock::now();
-  for (size_t i = 0; i < iters; ++i) f();
+  for (size_t i = 0; i < iters; ++i)
+    f();
   auto end = std::chrono::high_resolution_clock::now();
   return std::chrono::duration<double, std::milli>(end - start).count();
 }
 
 static std::vector<std::unique_ptr<Value>> sampleValues(size_t n) {
-  std::vector<std::unique_ptr<Value>> out; out.reserve(n);
+  std::vector<std::unique_ptr<Value>> out;
+  out.reserve(n);
   std::mt19937_64 rng(42);
   std::uniform_int_distribution<int> pick(0, 4);
   std::uniform_int_distribution<int> intd(-100000, 100000);
   std::uniform_real_distribution<double> fd(-1000.0, 1000.0);
   for (size_t i = 0; i < n; ++i) {
     switch (pick(rng)) {
-      case 0: out.emplace_back(ValueFactory::createNull()); break;
-      case 1: out.emplace_back(ValueFactory::createInteger(intd(rng))); break;
-      case 2: out.emplace_back(ValueFactory::createFloat(fd(rng))); break;
-      case 3: out.emplace_back(ValueFactory::createString("str_" + std::to_string(i))); break;
-      default: out.emplace_back(ValueFactory::createBoolean((i & 1) != 0)); break;
+    case 0:
+      out.emplace_back(ValueFactory::createNull());
+      break;
+    case 1:
+      out.emplace_back(ValueFactory::createInteger(intd(rng)));
+      break;
+    case 2:
+      out.emplace_back(ValueFactory::createFloat(fd(rng)));
+      break;
+    case 3:
+      out.emplace_back(ValueFactory::createString("str_" + std::to_string(i)));
+      break;
+    default:
+      out.emplace_back(ValueFactory::createBoolean((i & 1) != 0));
+      break;
     }
   }
   return out;
@@ -79,24 +93,31 @@ static DocumentSchema sampleDocumentSchema() {
 static Stat bench_value(size_t n) {
   auto vals = sampleValues(n);
   // Binary
-  double b_ser = time_ms(n, [&](){
+  double b_ser = time_ms(n, [&]() {
     std::stringstream ss(std::ios::in | std::ios::out | std::ios::binary);
-    for (auto& v : vals) bin::writeValue(*v, ss);
+    for (auto &v : vals)
+      bin::writeValue(*v, ss);
   });
-  double b_de = time_ms(n, [&](){
+  double b_de = time_ms(n, [&]() {
     std::stringstream ss(std::ios::in | std::ios::out | std::ios::binary);
-    for (auto& v : vals) bin::writeValue(*v, ss);
+    for (auto &v : vals)
+      bin::writeValue(*v, ss);
     ss.seekg(0);
-    for (size_t i=0;i<vals.size();++i) (void)bin::readValue(ss);
+    for (size_t i = 0; i < vals.size(); ++i)
+      (void)bin::readValue(ss);
   });
   // JSON
-  std::vector<std::string> jsons; jsons.reserve(vals.size());
-  double j_ser = time_ms(n, [&](){
-    jsons.clear(); jsons.reserve(vals.size());
-    for (auto& v : vals) jsons.emplace_back(json::toJson(*v));
+  std::vector<std::string> jsons;
+  jsons.reserve(vals.size());
+  double j_ser = time_ms(n, [&]() {
+    jsons.clear();
+    jsons.reserve(vals.size());
+    for (auto &v : vals)
+      jsons.emplace_back(json::toJson(*v));
   });
-  double j_de = time_ms(n, [&](){
-    for (auto& s : jsons) (void)json::fromJson(s);
+  double j_de = time_ms(n, [&]() {
+    for (auto &s : jsons)
+      (void)json::fromJson(s);
   });
   return {b_ser + 0.0, b_de + 0.0}; // we’ll print JSON separately below
 }
@@ -111,25 +132,32 @@ int main() {
   // Values
   auto vals = sampleValues(N);
   // Binary serialize
-  double v_b_ser = time_ms(iters, [&](){
+  double v_b_ser = time_ms(iters, [&]() {
     std::stringstream ss(std::ios::in | std::ios::out | std::ios::binary);
-    for (auto& v : vals) bin::writeValue(*v, ss);
+    for (auto &v : vals)
+      bin::writeValue(*v, ss);
   });
   // Binary deserialize
-  double v_b_de = time_ms(iters, [&](){
+  double v_b_de = time_ms(iters, [&]() {
     std::stringstream ss(std::ios::in | std::ios::out | std::ios::binary);
-    for (auto& v : vals) bin::writeValue(*v, ss);
+    for (auto &v : vals)
+      bin::writeValue(*v, ss);
     ss.seekg(0);
-    for (size_t i=0;i<vals.size();++i) (void)bin::readValue(ss);
+    for (size_t i = 0; i < vals.size(); ++i)
+      (void)bin::readValue(ss);
   });
   // JSON serialize/deserialize
-  std::vector<std::string> v_json; v_json.reserve(vals.size());
-  double v_j_ser = time_ms(iters, [&](){
-    v_json.clear(); v_json.reserve(vals.size());
-    for (auto& v : vals) v_json.emplace_back(json::toJson(*v));
+  std::vector<std::string> v_json;
+  v_json.reserve(vals.size());
+  double v_j_ser = time_ms(iters, [&]() {
+    v_json.clear();
+    v_json.reserve(vals.size());
+    for (auto &v : vals)
+      v_json.emplace_back(json::toJson(*v));
   });
-  double v_j_de = time_ms(iters, [&](){
-    for (auto& s : v_json) (void)json::fromJson(s);
+  double v_j_de = time_ms(iters, [&]() {
+    for (auto &s : v_json)
+      (void)json::fromJson(s);
   });
 
   std::cout << "Values:\n";
@@ -138,11 +166,20 @@ int main() {
 
   // Row
   Row r = sampleRow();
-  double r_b_ser = time_ms(iters * 1000, [&](){ std::stringstream ss(std::ios::in | std::ios::out | std::ios::binary); bin::writeRow(r, ss); });
-  double r_b_de = time_ms(iters * 1000, [&](){ std::stringstream ss(std::ios::in | std::ios::out | std::ios::binary); bin::writeRow(r, ss); ss.seekg(0); (void)bin::readRow(ss); });
+  double r_b_ser = time_ms(iters * 1000, [&]() {
+    std::stringstream ss(std::ios::in | std::ios::out | std::ios::binary);
+    bin::writeRow(r, ss);
+  });
+  double r_b_de = time_ms(iters * 1000, [&]() {
+    std::stringstream ss(std::ios::in | std::ios::out | std::ios::binary);
+    bin::writeRow(r, ss);
+    ss.seekg(0);
+    (void)bin::readRow(ss);
+  });
   std::string r_json = json::toJson(r);
-  double r_j_ser = time_ms(iters * 1000, [&](){ (void)json::toJson(r); });
-  double r_j_de = time_ms(iters * 1000, [&](){ (void)json::rowFromJson(r_json); });
+  double r_j_ser = time_ms(iters * 1000, [&]() { (void)json::toJson(r); });
+  double r_j_de =
+      time_ms(iters * 1000, [&]() { (void)json::rowFromJson(r_json); });
 
   std::cout << "Row:\n";
   std::cout << "  Binary   ser: " << r_b_ser << ", de: " << r_b_de << "\n";
@@ -150,11 +187,20 @@ int main() {
 
   // TableSchema
   TableSchema ts = sampleTableSchema();
-  double ts_b_ser = time_ms(iters * 1000, [&](){ std::stringstream ss(std::ios::in | std::ios::out | std::ios::binary); bin::writeTableSchema(ts, ss); });
-  double ts_b_de = time_ms(iters * 1000, [&](){ std::stringstream ss(std::ios::in | std::ios::out | std::ios::binary); bin::writeTableSchema(ts, ss); ss.seekg(0); (void)bin::readTableSchema(ss); });
+  double ts_b_ser = time_ms(iters * 1000, [&]() {
+    std::stringstream ss(std::ios::in | std::ios::out | std::ios::binary);
+    bin::writeTableSchema(ts, ss);
+  });
+  double ts_b_de = time_ms(iters * 1000, [&]() {
+    std::stringstream ss(std::ios::in | std::ios::out | std::ios::binary);
+    bin::writeTableSchema(ts, ss);
+    ss.seekg(0);
+    (void)bin::readTableSchema(ss);
+  });
   std::string ts_json = json::toJson(ts);
-  double ts_j_ser = time_ms(iters * 1000, [&](){ (void)json::toJson(ts); });
-  double ts_j_de = time_ms(iters * 1000, [&](){ (void)json::tableSchemaFromJson(ts_json); });
+  double ts_j_ser = time_ms(iters * 1000, [&]() { (void)json::toJson(ts); });
+  double ts_j_de = time_ms(iters * 1000,
+                           [&]() { (void)json::tableSchemaFromJson(ts_json); });
 
   std::cout << "TableSchema:\n";
   std::cout << "  Binary   ser: " << ts_b_ser << ", de: " << ts_b_de << "\n";
@@ -162,11 +208,20 @@ int main() {
 
   // DocumentSchema
   DocumentSchema ds = sampleDocumentSchema();
-  double ds_b_ser = time_ms(iters * 1000, [&](){ std::stringstream ss(std::ios::in | std::ios::out | std::ios::binary); bin::writeDocumentSchema(ds, ss); });
-  double ds_b_de = time_ms(iters * 1000, [&](){ std::stringstream ss(std::ios::in | std::ios::out | std::ios::binary); bin::writeDocumentSchema(ds, ss); ss.seekg(0); (void)bin::readDocumentSchema(ss); });
+  double ds_b_ser = time_ms(iters * 1000, [&]() {
+    std::stringstream ss(std::ios::in | std::ios::out | std::ios::binary);
+    bin::writeDocumentSchema(ds, ss);
+  });
+  double ds_b_de = time_ms(iters * 1000, [&]() {
+    std::stringstream ss(std::ios::in | std::ios::out | std::ios::binary);
+    bin::writeDocumentSchema(ds, ss);
+    ss.seekg(0);
+    (void)bin::readDocumentSchema(ss);
+  });
   std::string ds_json = json::toJson(ds);
-  double ds_j_ser = time_ms(iters * 1000, [&](){ (void)json::toJson(ds); });
-  double ds_j_de = time_ms(iters * 1000, [&](){ (void)json::documentSchemaFromJson(ds_json); });
+  double ds_j_ser = time_ms(iters * 1000, [&]() { (void)json::toJson(ds); });
+  double ds_j_de = time_ms(
+      iters * 1000, [&]() { (void)json::documentSchemaFromJson(ds_json); });
 
   std::cout << "DocumentSchema:\n";
   std::cout << "  Binary   ser: " << ds_b_ser << ", de: " << ds_b_de << "\n";

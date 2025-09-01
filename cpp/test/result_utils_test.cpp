@@ -32,7 +32,8 @@ int main() {
   // Expect header + 2 rows
   assert(csv.find("id,name,active\n") == 0);
   // Ensure escaping for quotes and comma
-  assert(csv.find("2,\"bob, the \"\"builder\"\"\",false\n") != std::string::npos);
+  assert(csv.find("2,\"bob, the \"\"builder\"\"\",false\n") !=
+         std::string::npos);
 
   // JSON without metadata
   std::string json = rs.toJSON(false);
@@ -48,8 +49,8 @@ int main() {
   auto p0 = rs.page(0);
   auto p1 = rs.page(1);
   assert(p0.size() == 1 && p1.size() == 1);
-  assert(static_cast<const IntegerValue&>(p0[0]->at(0)).asInt() == 1);
-  assert(static_cast<const IntegerValue&>(p1[0]->at(0)).asInt() == 2);
+  assert(static_cast<const IntegerValue &>(p0[0]->at(0)).asInt() == 1);
+  assert(static_cast<const IntegerValue &>(p1[0]->at(0)).asInt() == 2);
 
   return 0;
 }

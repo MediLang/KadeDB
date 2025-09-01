@@ -1,7 +1,7 @@
+#include "kadedb/value.h"
 #include <cassert>
 #include <memory>
 #include <string>
-#include "kadedb/value.h"
 
 using namespace kadedb;
 
@@ -54,7 +54,7 @@ int main() {
   // Clone
   auto c = p1->clone();
   assert(c->type() == ValueType::Integer);
-  assert(static_cast<IntegerValue&>(*c).asInt() == 10);
+  assert(static_cast<IntegerValue &>(*c).asInt() == 10);
 
   return 0;
 }

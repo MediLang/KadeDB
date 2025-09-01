@@ -1,6 +1,6 @@
+#include "kadedb/core.h"
 #include <cassert>
 #include <iostream>
-#include "kadedb/core.h"
 
 int main() {
   std::string v = kadedb::GetVersion();

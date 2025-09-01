@@ -8,9 +8,15 @@
 
 using namespace kadedb;
 
-static std::unique_ptr<Value> S(const std::string& s) { return std::make_unique<StringValue>(s); }
-static std::unique_ptr<Value> I(long long v) { return std::make_unique<IntegerValue>(v); }
-static std::unique_ptr<Value> F(double v) { return std::make_unique<FloatValue>(v); }
+static std::unique_ptr<Value> S(const std::string &s) {
+  return std::make_unique<StringValue>(s);
+}
+static std::unique_ptr<Value> I(long long v) {
+  return std::make_unique<IntegerValue>(v);
+}
+static std::unique_ptr<Value> F(double v) {
+  return std::make_unique<FloatValue>(v);
+}
 
 int main() {
   // String constraints: min/max length and oneOf
@@ -22,9 +28,12 @@ int main() {
     c.constraints.oneOf = {"ok", "warn"};
     ds.addField(c);
 
-    Document d1; d1.emplace("status", S("ok"));
-    Document d2; d2.emplace("status", S("toolong"));
-    Document d3; d3.emplace("status", S("no")); // not in oneOf
+    Document d1;
+    d1.emplace("status", S("ok"));
+    Document d2;
+    d2.emplace("status", S("toolong"));
+    Document d3;
+    d3.emplace("status", S("no")); // not in oneOf
 
     auto e1 = SchemaValidator::validateDocument(ds, d1);
     assert(e1.empty());
@@ -42,9 +51,12 @@ int main() {
     c.constraints.maxValue = 65;
     ds.addField(c);
 
-    Document d1; d1.emplace("age", I(30));
-    Document d2; d2.emplace("age", I(10));
-    Document d3; d3.emplace("age", I(80));
+    Document d1;
+    d1.emplace("age", I(30));
+    Document d2;
+    d2.emplace("age", I(10));
+    Document d3;
+    d3.emplace("age", I(80));
 
     assert(SchemaValidator::validateDocument(ds, d1).empty());
     assert(!SchemaValidator::validateDocument(ds, d2).empty());
@@ -54,8 +66,8 @@ int main() {
   // Uniqueness with ignoreNulls toggle on rows
   {
     TableSchema ts({
-      Column{"id", ColumnType::Integer, true, true},
-      Column{"name", ColumnType::String, true, false},
+        Column{"id", ColumnType::Integer, true, true},
+        Column{"name", ColumnType::String, true, false},
     });
 
     std::vector<Row> rows;

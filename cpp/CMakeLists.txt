@@ -1,4 +1,9 @@
 # Core C++ library
+
+# Optional memory debug flags
+option(KADEDB_MEM_DEBUG "Enable KadeDB memory debug counters" OFF)
+option(KADEDB_ENABLE_SMALL_OBJECT_POOL "Enable small object pool for small Value types" OFF)
+option(KADEDB_RC_STRINGS "Enable reference-counted storage for StringValue payloads" OFF)
 set(LIB_TYPE SHARED)
 if(NOT KADEDB_BUILD_SHARED)
   set(LIB_TYPE STATIC)
@@ -39,6 +44,17 @@ set_target_properties(kadedb_core PROPERTIES
 if(MSVC)
   target_compile_definitions(kadedb_core PRIVATE _CRT_SECURE_NO_WARNINGS)
   set_target_properties(kadedb_core PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+endif()
+
+# Propagate optional flags
+if(KADEDB_MEM_DEBUG)
+  target_compile_definitions(kadedb_core PUBLIC KADEDB_MEM_DEBUG)
+endif()
+if(KADEDB_ENABLE_SMALL_OBJECT_POOL)
+  target_compile_definitions(kadedb_core PUBLIC KADEDB_ENABLE_SMALL_OBJECT_POOL)
+endif()
+if(KADEDB_RC_STRINGS)
+  target_compile_definitions(kadedb_core PUBLIC KADEDB_RC_STRINGS)
 endif()
 
 # Install

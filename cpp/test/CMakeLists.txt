@@ -100,3 +100,25 @@ add_executable(kadedb_c_api_table_schema_wrapper_test
 target_link_libraries(kadedb_c_api_table_schema_wrapper_test PRIVATE KadeDB::kadedb_c)
 
 add_test(NAME kadedb_c_api_table_schema_wrapper_test COMMAND kadedb_c_api_table_schema_wrapper_test)
+
+# Copy/Move semantics tests
+add_executable(kadedb_copy_move_test
+  copy_move_test.cpp
+)
+
+target_link_libraries(kadedb_copy_move_test PRIVATE KadeDB::kadedb_core)
+
+target_compile_features(kadedb_copy_move_test PRIVATE cxx_std_17)
+
+add_test(NAME kadedb_copy_move_test COMMAND kadedb_copy_move_test)
+
+# RowShallow shallow copy semantics tests
+add_executable(kadedb_row_shallow_test
+  row_shallow_test.cpp
+)
+
+target_link_libraries(kadedb_row_shallow_test PRIVATE KadeDB::kadedb_core)
+
+target_compile_features(kadedb_row_shallow_test PRIVATE cxx_std_17)
+
+add_test(NAME kadedb_row_shallow_test COMMAND kadedb_row_shallow_test)

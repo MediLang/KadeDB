@@ -3,8 +3,6 @@
 
 namespace kadedb {
 
-std::string GetVersion() {
-  return std::string(KADEDB_VERSION);
-}
+std::string GetVersion() { return std::string(KADEDB_VERSION); }
 
-}
+} // namespace kadedb

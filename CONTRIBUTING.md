@@ -241,7 +241,7 @@ When reporting issues, please include:
    - `CMakeLists.txt`
    - `include/kadedb/version.h`
    - Documentation
-   
+
 2. Create a release branch:
    ```bash
    git checkout -b release/vX.Y.Z

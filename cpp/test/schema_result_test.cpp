@@ -3,19 +3,21 @@
 #include <string>
 #include <vector>
 
-#include "kadedb/schema.h"
 #include "kadedb/result.h"
+#include "kadedb/schema.h"
 #include "kadedb/value.h"
 
 using namespace kadedb;
 
 int main() {
   // Define schema
-  TableSchema schema({
-      Column{"id", ColumnType::Integer, false, true},
-      Column{"name", ColumnType::String, false, false},
-      Column{"active", ColumnType::Boolean, true, false},
-  }, "id");
+  TableSchema schema(
+      {
+          Column{"id", ColumnType::Integer, false, true},
+          Column{"name", ColumnType::String, false, false},
+          Column{"active", ColumnType::Boolean, true, false},
+      },
+      "id");
 
   assert(schema.findColumn("name") == 1);
 
@@ -43,10 +45,11 @@ int main() {
   rs.reset();
   // Ensure next() is executed even in Release (asserts may be compiled out)
   rs.next();
-  const auto& r0 = rs.current();
-  assert(static_cast<const IntegerValue&>(r0.at(0)).asInt() == 1);
-  assert(static_cast<const StringValue&>(r0.at(1)).asString() == std::string("alice"));
-  assert(static_cast<const BooleanValue&>(r0.at(2)).asBool() == true);
+  const auto &r0 = rs.current();
+  assert(static_cast<const IntegerValue &>(r0.at(0)).asInt() == 1);
+  assert(static_cast<const StringValue &>(r0.at(1)).asString() ==
+         std::string("alice"));
+  assert(static_cast<const BooleanValue &>(r0.at(2)).asBool() == true);
 
   return 0;
 }
