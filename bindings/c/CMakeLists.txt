@@ -6,6 +6,8 @@ endif()
 
 add_library(kadedb_c ${LIB_TYPE}
   src/kadedb_c.cpp
+  src/kadedb_ffi_helpers.cpp
+  # src/examples.cpp  # Temporarily disabled until core FFI works
 )
 
 add_library(KadeDB::kadedb_c ALIAS kadedb_c)

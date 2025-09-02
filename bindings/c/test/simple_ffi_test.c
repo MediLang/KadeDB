@@ -1,0 +1,156 @@
+#include "kadedb/kadedb.h"
+#include "kadedb/kadedb_ffi_helpers.h"
+
+#include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+void test_error_handling() {
+  printf("=== Testing Error Handling ===\n");
+
+  KDB_ErrorInfo error;
+  kadedb_clear_error(&error);
+
+  // Verify error is cleared
+  assert(!kadedb_has_error(&error));
+  assert(error.code == KDB_SUCCESS);
+
+  // Test error code string conversion
+  const char *error_str = kadedb_error_code_string(KDB_ERROR_INVALID_ARGUMENT);
+  printf("Error code 1: %s\n", error_str);
+  assert(strcmp(error_str, "Invalid argument") == 0);
+
+  printf("✓ Error handling tests passed\n\n");
+}
+
+void test_version() {
+  printf("=== Testing Version ===\n");
+
+  const char *version = KadeDB_GetVersion();
+  printf("KadeDB Version: %s\n", version);
+  assert(version != NULL);
+  assert(strlen(version) > 0);
+
+  printf("✓ Version test passed\n\n");
+}
+
+void test_value_handles() {
+  printf("=== Testing Value Handles ===\n");
+
+  KDB_ErrorInfo error;
+  kadedb_clear_error(&error);
+
+  // Test integer value
+  KDB_ValueHandle *int_val = KadeDB_Value_CreateInteger(42);
+  assert(int_val != NULL);
+
+  KDB_ValueType type = KadeDB_Value_GetType(int_val);
+  assert(type == KDB_VAL_INTEGER);
+
+  long long value = KadeDB_Value_AsInteger(int_val, &error);
+  assert(!kadedb_has_error(&error));
+  assert(value == 42);
+
+  // Test string value
+  KDB_ValueHandle *str_val = KadeDB_Value_CreateString("Hello, FFI!");
+  assert(str_val != NULL);
+
+  type = KadeDB_Value_GetType(str_val);
+  assert(type == KDB_VAL_STRING);
+
+  const char *str = KadeDB_Value_AsString(str_val, &error);
+  assert(!kadedb_has_error(&error));
+  assert(strcmp(str, "Hello, FFI!") == 0);
+
+  // Test value cloning
+  KDB_ValueHandle *cloned = KadeDB_Value_Clone(int_val);
+  assert(cloned != NULL);
+  assert(KadeDB_Value_Equals(int_val, cloned));
+
+  // Test string representation
+  char *str_repr = KadeDB_Value_ToString(int_val);
+  assert(str_repr != NULL);
+  assert(strcmp(str_repr, "42") == 0);
+
+  // Cleanup
+  KadeDB_String_Free(str_repr);
+  KadeDB_Value_Destroy(int_val);
+  KadeDB_Value_Destroy(str_val);
+  KadeDB_Value_Destroy(cloned);
+
+  printf("✓ Value handle tests passed\n\n");
+}
+
+void test_table_schema() {
+  printf("=== Testing Table Schema ===\n");
+
+  KDB_ErrorInfo error;
+  kadedb_clear_error(&error);
+
+  // Create schema
+  KDB_TableSchema *schema = KadeDB_TableSchema_Create();
+  assert(schema != NULL);
+
+  // Add a simple column
+  KDB_TableColumnEx column = {
+      "test_col", KDB_COL_INTEGER,
+      0,   // not nullable
+      1,   // unique
+      NULL // no constraints
+  };
+
+  int result = KadeDB_TableSchema_AddColumn(schema, &column);
+  assert(result == 1);
+
+  // Test validation with a simple row
+  KDB_Value values[] = {{KDB_VAL_INTEGER, .as.i64 = 123}};
+  KDB_RowView row = {values, 1};
+
+  char err_buf[256];
+  result =
+      KadeDB_TableSchema_ValidateRow(schema, &row, err_buf, sizeof(err_buf));
+  assert(result == 1);
+
+  // Cleanup
+  KadeDB_TableSchema_Destroy(schema);
+
+  printf("✓ Table schema tests passed\n\n");
+}
+
+void test_memory_management() {
+  printf("=== Testing Memory Management ===\n");
+
+  // Test string duplication
+  const char *original = "Test string";
+  char *duplicate = KadeDB_String_Duplicate(original);
+  assert(duplicate != NULL);
+  assert(strcmp(duplicate, original) == 0);
+
+  KadeDB_String_Free(duplicate);
+
+  // Test safe destruction pattern
+  KDB_TableSchema *schema = KadeDB_TableSchema_Create();
+  assert(schema != NULL);
+
+  KADEDB_SAFE_DESTROY(TableSchema, schema);
+  assert(schema == NULL);
+
+  printf("✓ Memory management tests passed\n\n");
+}
+
+int main() {
+  printf("KadeDB FFI Basic Validation Test\n");
+  printf("================================\n\n");
+
+  test_error_handling();
+  test_version();
+  test_value_handles();
+  test_table_schema();
+  test_memory_management();
+
+  printf("🎉 ALL BASIC FFI TESTS PASSED! 🎉\n");
+  printf("Core FFI functionality is working correctly.\n");
+
+  return 0;
+}
