@@ -340,8 +340,11 @@ int KadeDB_DocumentSchema_AddField(KDB_DocumentSchema *schema, const char *name,
                                    int unique) {
   if (!schema || !name)
     return 0;
-  Column c{std::string{name}, to_cpp_column_type(type), nullable != 0,
-           unique != 0};
+  Column c;
+  c.name = std::string{name};
+  c.type = to_cpp_column_type(type);
+  c.nullable = (nullable != 0);
+  c.unique = (unique != 0);
   // Return 0 on duplicate; our addField replaces, so emulate duplicate check
   if (schema->impl.hasField(c.name))
     return 0;

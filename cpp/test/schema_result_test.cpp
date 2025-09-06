@@ -11,13 +11,30 @@ using namespace kadedb;
 
 int main() {
   // Define schema
-  TableSchema schema(
-      {
-          Column{"id", ColumnType::Integer, false, true},
-          Column{"name", ColumnType::String, false, false},
-          Column{"active", ColumnType::Boolean, true, false},
-      },
-      "id");
+  std::vector<Column> cols;
+  {
+    Column c;
+    c.name = "id";
+    c.type = ColumnType::Integer;
+    c.nullable = false;
+    c.unique = true;
+    cols.push_back(c);
+  }
+  {
+    Column c;
+    c.name = "name";
+    c.type = ColumnType::String;
+    c.nullable = false;
+    cols.push_back(c);
+  }
+  {
+    Column c;
+    c.name = "active";
+    c.type = ColumnType::Boolean;
+    c.nullable = true;
+    cols.push_back(c);
+  }
+  TableSchema schema(cols, std::string("id"));
 
   assert(schema.findColumn("name") == 1);
 

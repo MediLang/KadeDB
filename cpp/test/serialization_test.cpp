@@ -35,17 +35,33 @@ TEST(Serialization, ValueRoundTripBinary) {
 }
 
 TEST(Serialization, SchemaRoundTripBinary) {
-  TableSchema ts(
-      {
-          Column{"id", ColumnType::Integer, false, true, {}},
-          Column{"name",
-                 ColumnType::String,
-                 false,
-                 false,
-                 {.minLength = 1u, .maxLength = 100u}},
-          Column{"age", ColumnType::Integer, true, false, {.minValue = 0.0}},
-      },
-      std::optional<std::string>("id"));
+  std::vector<Column> cols;
+  {
+    Column c;
+    c.name = "id";
+    c.type = ColumnType::Integer;
+    c.nullable = false;
+    c.unique = true;
+    cols.push_back(c);
+  }
+  {
+    Column c;
+    c.name = "name";
+    c.type = ColumnType::String;
+    c.nullable = false;
+    c.constraints.minLength = 1u;
+    c.constraints.maxLength = 100u;
+    cols.push_back(c);
+  }
+  {
+    Column c;
+    c.name = "age";
+    c.type = ColumnType::Integer;
+    c.nullable = true;
+    c.constraints.minValue = 0.0;
+    cols.push_back(c);
+  }
+  TableSchema ts(cols, std::optional<std::string>("id"));
 
   std::stringstream ss(std::ios::in | std::ios::out | std::ios::binary);
   bin::writeTableSchema(ts, ss);

@@ -73,17 +73,38 @@ static void test_document_deep_copy() {
 }
 
 static void test_schema_copy_move() {
-  TableSchema ts(
-      {Column{"id", ColumnType::Integer}, Column{"name", ColumnType::String}},
-      std::string("id"));
+  std::vector<Column> cols;
+  {
+    Column c;
+    c.name = "id";
+    c.type = ColumnType::Integer;
+    cols.push_back(c);
+  }
+  {
+    Column c;
+    c.name = "name";
+    c.type = ColumnType::String;
+    cols.push_back(c);
+  }
+  TableSchema ts(cols, std::string("id"));
   TableSchema ts2 = ts; // copy
   assert(ts2.columns().size() == ts.columns().size());
   TableSchema ts3 = std::move(ts2); // move
   assert(ts3.columns().size() == ts.columns().size());
 
   DocumentSchema ds;
-  ds.addField(Column{"age", ColumnType::Integer});
-  ds.addField(Column{"ok", ColumnType::Boolean});
+  {
+    Column c;
+    c.name = "age";
+    c.type = ColumnType::Integer;
+    ds.addField(c);
+  }
+  {
+    Column c;
+    c.name = "ok";
+    c.type = ColumnType::Boolean;
+    ds.addField(c);
+  }
   DocumentSchema ds2 = ds;
   Column out{};
   assert(ds2.getField("age", out));

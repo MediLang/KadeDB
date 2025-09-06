@@ -154,7 +154,7 @@
         "dependencies": [
           2
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -162,7 +162,7 @@
             "description": "Finalize the RelationalStorage interface with all required methods, error handling, and documentation.",
             "dependencies": [],
             "details": "1. Review and refine the existing RelationalStorage interface\n2. Add detailed documentation for each method\n3. Define appropriate error codes and status returns\n4. Add any missing methods needed for MVP functionality\n5. Define the TableSchema, Row, ResultSet, and Predicate classes/structs\n6. Ensure the interface is extensible for future backend implementations",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {

@@ -12,9 +12,28 @@ using namespace kadedb;
 int main() {
   // Build a document schema
   DocumentSchema ds;
-  ds.addField(Column{"id", ColumnType::Integer, false, true});
-  ds.addField(Column{"name", ColumnType::String, false, false});
-  ds.addField(Column{"active", ColumnType::Boolean, true, false});
+  {
+    Column c;
+    c.name = "id";
+    c.type = ColumnType::Integer;
+    c.nullable = false;
+    c.unique = true;
+    ds.addField(c);
+  }
+  {
+    Column c;
+    c.name = "name";
+    c.type = ColumnType::String;
+    c.nullable = false;
+    ds.addField(c);
+  }
+  {
+    Column c;
+    c.name = "active";
+    c.type = ColumnType::Boolean;
+    c.nullable = true;
+    ds.addField(c);
+  }
 
   // Valid document
   Document d1;

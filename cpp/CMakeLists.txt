@@ -14,6 +14,7 @@ add_library(kadedb_core ${LIB_TYPE}
   src/core/value.cpp
   src/core/schema.cpp
   src/core/serialization.cpp
+  src/core/storage.cpp
 )
 
 add_library(KadeDB::kadedb_core ALIAS kadedb_core)

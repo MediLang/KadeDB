@@ -14,15 +14,19 @@ static std::unique_ptr<Value> S(const std::string &s) {
 static std::unique_ptr<Value> I(long long v) {
   return std::make_unique<IntegerValue>(v);
 }
-static std::unique_ptr<Value> F(double v) {
-  return std::make_unique<FloatValue>(v);
-}
+// static std::unique_ptr<Value> F(double v) {
+//   return std::make_unique<FloatValue>(v);
+// }
 
 int main() {
   // String constraints: min/max length and oneOf
   {
     DocumentSchema ds;
-    Column c{"status", ColumnType::String, false, false};
+    Column c;
+    c.name = "status";
+    c.type = ColumnType::String;
+    c.nullable = false;
+    c.unique = false;
     c.constraints.minLength = 2;
     c.constraints.maxLength = 4;
     c.constraints.oneOf = {"ok", "warn"};
@@ -46,7 +50,11 @@ int main() {
   // Numeric constraints: min/max values
   {
     DocumentSchema ds;
-    Column c{"age", ColumnType::Integer, false, false};
+    Column c;
+    c.name = "age";
+    c.type = ColumnType::Integer;
+    c.nullable = false;
+    c.unique = false;
     c.constraints.minValue = 18;
     c.constraints.maxValue = 65;
     ds.addField(c);
@@ -65,10 +73,24 @@ int main() {
 
   // Uniqueness with ignoreNulls toggle on rows
   {
-    TableSchema ts({
-        Column{"id", ColumnType::Integer, true, true},
-        Column{"name", ColumnType::String, true, false},
-    });
+    std::vector<Column> cols;
+    {
+      Column c;
+      c.name = "id";
+      c.type = ColumnType::Integer;
+      c.nullable = true;
+      c.unique = true;
+      cols.push_back(c);
+    }
+    {
+      Column c;
+      c.name = "name";
+      c.type = ColumnType::String;
+      c.nullable = true;
+      c.unique = false;
+      cols.push_back(c);
+    }
+    TableSchema ts(cols);
 
     std::vector<Row> rows;
     // row0: id=null

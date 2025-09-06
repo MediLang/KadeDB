@@ -230,11 +230,6 @@ public:
           oss << ' ';
       }
     };
-    auto commaSpace = [&]() {
-      if (indent == 0)
-        return; // compact
-      oss << ' ';
-    };
 
     if (!includeMetadata) {
       oss << '[';

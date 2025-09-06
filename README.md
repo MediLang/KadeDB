@@ -835,6 +835,91 @@ WHERE value > 0.5;
 
 
 
+## Relational Storage MVP API (C++)
+
+The relational storage interface lives in `cpp/include/kadedb/storage.h` and is backed by an in-memory implementation in `cpp/src/core/storage.cpp`.
+
+APIs (pure virtual on `RelationalStorage`):
+
+- `Status createTable(const std::string& table, const TableSchema& schema)`
+- `Status insertRow(const std::string& table, const Row& row)`
+- `Result<ResultSet> select(const std::string& table, const std::vector<std::string>& columns, const std::optional<Predicate>& where = std::nullopt)`
+- `std::vector<std::string> listTables() const`
+- `Status dropTable(const std::string& table)`
+- `Result<size_t> deleteRows(const std::string& table, const std::optional<Predicate>& where = std::nullopt)`
+- `Status updateRows(const std::string& table, const std::unordered_map<std::string, std::unique_ptr<Value>>& assignments, const std::optional<Predicate>& where = std::nullopt)`
+- `Status truncateTable(const std::string& table)`
+
+Supporting types:
+
+- `TableSchema`, `Column`, `Row`, `RowShallow`, `DocumentSchema`, and `Document` in `cpp/include/kadedb/schema.h`
+- `ResultSet` and `ResultRow` in `cpp/include/kadedb/result.h`
+- `Status`, `StatusCode`, and `Result<T>` in `cpp/include/kadedb/status.h`
+- `Predicate` for simple single-column comparisons in `cpp/include/kadedb/storage.h`
+
+Error semantics (MVP):
+
+- `createTable` — returns `AlreadyExists` if the table exists; `OK` on success.
+- `insertRow` — `NotFound` if the table is missing; `InvalidArgument` if schema validation fails; `FailedPrecondition` if uniqueness constraints would be violated; `OK` on success.
+- `select` — returns `Result::err(NotFound)` if the table is missing; `Result::err(InvalidArgument)` if requested projection columns are unknown; `Result::ok(ResultSet)` on success (possibly empty).
+- `deleteRows` — returns `Result::err(NotFound)` if the table is missing; otherwise `Result::ok(count)` with number of deleted rows; when `where` is omitted, deletes all rows.
+- `updateRows` — `NotFound` if the table is missing; `InvalidArgument` if assignment includes unknown columns or results in type/constraint violations; `FailedPrecondition` if post-update uniqueness checks fail; `OK` on success. Updates are applied atomically.
+- `dropTable` — `NotFound` if missing; `OK` on success.
+- `truncateTable` — `NotFound` if missing; `OK` on success (clears all rows, preserves schema).
+
+Tests: `cpp/test/storage_api_test.cpp` exercises create/insert/select, list/drop, delete/update, predicates, nullability and uniqueness, and truncate semantics.
+
+---
+
+### Quick Start: Relational Storage (C++)
+
+```cpp
+#include "kadedb/schema.h"
+#include "kadedb/storage.h"
+#include "kadedb/value.h"
+using namespace kadedb;
+
+int main() {
+  // Define a simple schema: person(id INT unique, name STRING not null, age INT)
+  std::vector<Column> cols;
+  {
+    Column c; c.name = "id"; c.type = ColumnType::Integer; c.nullable = false; c.unique = true; cols.push_back(c);
+  }
+  {
+    Column c; c.name = "name"; c.type = ColumnType::String; c.nullable = false; cols.push_back(c);
+  }
+  {
+    Column c; c.name = "age"; c.type = ColumnType::Integer; c.nullable = true; cols.push_back(c);
+  }
+  TableSchema schema(cols, std::string("id"));
+
+  InMemoryRelationalStorage rs;
+  Status st = rs.createTable("person", schema);
+  if (!st.ok()) return 1;
+
+  // Insert a row
+  Row r(schema.columns().size());
+  r.set(0, ValueFactory::createInteger(1));
+  r.set(1, ValueFactory::createString("Ada"));
+  r.set(2, ValueFactory::createInteger(36));
+  st = rs.insertRow("person", r);
+  if (!st.ok()) return 1;
+
+  // SELECT name WHERE age > 30
+  std::optional<Predicate> pred; pred.emplace();
+  pred->column = "age"; pred->op = Predicate::Op::Gt; pred->rhs = ValueFactory::createInteger(30);
+  auto res = rs.select("person", {"name"}, pred);
+  if (!res.hasValue()) return 1; // handle res.status()
+
+  const ResultSet &s = res.value();
+  for (size_t i = 0; i < s.rowCount(); ++i) {
+    // toString() convenience or typed access
+    printf("name=%s\n", s.at(i, 0).toString().c_str());
+  }
+  return 0;
+}
+```
+
 ## Contributing
 
 We welcome contributions in the following areas:
