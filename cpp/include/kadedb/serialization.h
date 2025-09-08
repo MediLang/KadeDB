@@ -43,6 +43,10 @@ TableSchema readTableSchema(std::istream &is);
 // DocumentSchema
 void writeDocumentSchema(const DocumentSchema &schema, std::ostream &os);
 DocumentSchema readDocumentSchema(std::istream &is);
+
+// Document
+void writeDocument(const Document &doc, std::ostream &os);
+Document readDocument(std::istream &is);
 } // namespace bin
 
 // JSON serialization API (text). Produces/consumes strict JSON.
@@ -62,6 +66,10 @@ TableSchema tableSchemaFromJson(const std::string &json);
 // DocumentSchema
 std::string toJson(const DocumentSchema &schema);
 DocumentSchema documentSchemaFromJson(const std::string &json);
+
+// Document
+std::string toJson(const Document &doc);
+Document documentFromJson(const std::string &json);
 } // namespace json
 
 } // namespace kadedb

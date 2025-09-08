@@ -303,6 +303,34 @@ DocumentSchema readDocumentSchema(std::istream &is) {
   return ds;
 }
 
+void writeDocument(const Document &doc, std::ostream &os) {
+  writeHeader(os);
+  writeU32(os, static_cast<uint32_t>(doc.size()));
+  for (const auto &kv : doc) {
+    writeString(os, kv.first);
+    uint8_t isNull = kv.second ? 0 : 1;
+    writeU8(os, isNull);
+    if (!isNull)
+      writeValue(*kv.second, os);
+  }
+}
+
+Document readDocument(std::istream &is) {
+  readHeader(is);
+  uint32_t n = readU32(is);
+  Document d;
+  for (uint32_t i = 0; i < n; ++i) {
+    std::string name = readString(is);
+    uint8_t isNull = readU8(is);
+    if (!isNull) {
+      d.emplace(std::move(name), readValue(is));
+    } else {
+      d.emplace(std::move(name), nullptr);
+    }
+  }
+  return d;
+}
+
 } // namespace bin
 
 namespace json {
@@ -698,6 +726,98 @@ DocumentSchema documentSchemaFromJson(const std::string &s) {
     ds.addField(std::move(c));
   }
   return ds;
+}
+
+std::string toJson(const Document &doc) {
+  std::ostringstream oss;
+  oss << '{';
+  bool first = true;
+  for (const auto &kv : doc) {
+    if (!first)
+      oss << ',';
+    first = false;
+    oss << '"' << jsonEscape(kv.first) << '"' << ':';
+    if (!kv.second) {
+      oss << "null";
+    } else {
+      oss << toJson(*kv.second);
+    }
+  }
+  oss << '}';
+  return oss.str();
+}
+
+Document documentFromJson(const std::string &s) {
+  // Expect an object with keys -> Value JSON or null
+  size_t objStart = s.find('{');
+  size_t objEnd = s.rfind('}');
+  if (objStart == std::string::npos || objEnd == std::string::npos ||
+      objEnd <= objStart)
+    throw SerializationError("Bad Document JSON");
+  std::string obj = s.substr(objStart + 1, objEnd - objStart - 1);
+  Document d;
+  int depth = 0;
+  size_t last = 0;
+  for (size_t i = 0; i < obj.size(); ++i) {
+    char c = obj[i];
+    if (c == '{')
+      ++depth;
+    else if (c == '}')
+      --depth;
+    else if (c == ',' && depth == 0) {
+      std::string pair = obj.substr(last, i - last);
+      last = i + 1;
+      // parse pair key:value
+      size_t q1 = pair.find('"');
+      if (q1 == std::string::npos)
+        continue;
+      size_t q2 = pair.find('"', q1 + 1);
+      if (q2 == std::string::npos)
+        continue;
+      std::string key = pair.substr(q1 + 1, q2 - q1 - 1);
+      size_t colon = pair.find(':', q2 + 1);
+      if (colon == std::string::npos)
+        continue;
+      std::string val = pair.substr(colon + 1);
+      // trim
+      size_t a = 0, b = val.size();
+      while (a < b && isspace(static_cast<unsigned char>(val[a])))
+        ++a;
+      while (b > a && isspace(static_cast<unsigned char>(val[b - 1])))
+        --b;
+      if (a == b || (b - a == 4 && val.substr(a, 4) == "null")) {
+        d.emplace(std::move(key), nullptr);
+      } else {
+        d.emplace(std::move(key), fromJson(val.substr(a, b - a)));
+      }
+    }
+  }
+  // last segment
+  if (last < obj.size()) {
+    std::string pair = obj.substr(last);
+    size_t q1 = pair.find('"');
+    if (q1 != std::string::npos) {
+      size_t q2 = pair.find('"', q1 + 1);
+      if (q2 != std::string::npos) {
+        std::string key = pair.substr(q1 + 1, q2 - q1 - 1);
+        size_t colon = pair.find(':', q2 + 1);
+        if (colon != std::string::npos) {
+          std::string val = pair.substr(colon + 1);
+          size_t a = 0, b = val.size();
+          while (a < b && isspace(static_cast<unsigned char>(val[a])))
+            ++a;
+          while (b > a && isspace(static_cast<unsigned char>(val[b - 1])))
+            --b;
+          if (a == b || (b - a == 4 && val.substr(a, 4) == "null")) {
+            d.emplace(std::move(key), nullptr);
+          } else {
+            d.emplace(std::move(key), fromJson(val.substr(a, b - a)));
+          }
+        }
+      }
+    }
+  }
+  return d;
 }
 
 } // namespace json

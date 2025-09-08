@@ -133,3 +133,14 @@ target_link_libraries(kadedb_storage_api_test PRIVATE KadeDB::kadedb_core)
 target_compile_features(kadedb_storage_api_test PRIVATE cxx_std_17)
 
 add_test(NAME kadedb_storage_api_test COMMAND kadedb_storage_api_test)
+
+# Document storage API tests
+add_executable(kadedb_document_storage_api_test
+  document_storage_api_test.cpp
+)
+
+target_link_libraries(kadedb_document_storage_api_test PRIVATE KadeDB::kadedb_core)
+
+target_compile_features(kadedb_document_storage_api_test PRIVATE cxx_std_17)
+
+add_test(NAME kadedb_document_storage_api_test COMMAND kadedb_document_storage_api_test)

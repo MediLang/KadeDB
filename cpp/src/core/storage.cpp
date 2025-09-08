@@ -32,6 +32,33 @@ static bool evalPredicate(const TableSchema &schema, const Row &row,
   return false;
 }
 
+// Utility: evaluate document predicate on a document
+static bool evalDocPredicate(const Document &doc, const DocPredicate &pred) {
+  auto it = doc.find(pred.field);
+  if (it == doc.end())
+    return false; // unknown field -> not matched
+  const Value *lhs = it->second.get();
+  const Value *rhs = pred.rhs.get();
+  if (!lhs || !rhs)
+    return false; // null comparisons -> no match (MVP semantics)
+  int cmp = lhs->compare(*rhs);
+  switch (pred.op) {
+  case DocPredicate::Op::Eq:
+    return cmp == 0;
+  case DocPredicate::Op::Ne:
+    return cmp != 0;
+  case DocPredicate::Op::Lt:
+    return cmp < 0;
+  case DocPredicate::Op::Le:
+    return cmp <= 0;
+  case DocPredicate::Op::Gt:
+    return cmp > 0;
+  case DocPredicate::Op::Ge:
+    return cmp >= 0;
+  }
+  return false;
+}
+
 Status InMemoryRelationalStorage::createTable(const std::string &table,
                                               const TableSchema &schema) {
   if (tables_.find(table) != tables_.end()) {
@@ -124,10 +151,67 @@ InMemoryRelationalStorage::select(const std::string &table,
   return Result<ResultSet>::ok(std::move(rs));
 }
 
+Status InMemoryDocumentStorage::createCollection(
+    const std::string &collection,
+    const std::optional<DocumentSchema> &schema) {
+  if (data_.find(collection) != data_.end())
+    return Status::AlreadyExists("Collection already exists: " + collection);
+  CollectionData cd;
+  cd.schema = schema;
+  data_.emplace(collection, std::move(cd));
+  return Status::OK();
+}
+
+Status InMemoryDocumentStorage::dropCollection(const std::string &collection) {
+  auto it = data_.find(collection);
+  if (it == data_.end())
+    return Status::NotFound("Unknown collection: " + collection);
+  data_.erase(it);
+  return Status::OK();
+}
+
+std::vector<std::string> InMemoryDocumentStorage::listCollections() const {
+  std::vector<std::string> names;
+  names.reserve(data_.size());
+  for (const auto &kv : data_)
+    names.push_back(kv.first);
+  return names;
+}
+
 Status InMemoryDocumentStorage::put(const std::string &collection,
                                     const std::string &key,
                                     const Document &doc) {
-  data_[collection][key] = deepCopyDocument(doc);
+  // Create collection lazily if missing (MVP behavior)
+  auto it = data_.find(collection);
+  if (it == data_.end()) {
+    CollectionData cd;
+    data_.emplace(collection, std::move(cd));
+    it = data_.find(collection);
+  }
+
+  // Validate against schema if present
+  if (it->second.schema) {
+    auto err = SchemaValidator::validateDocument(*it->second.schema, doc);
+    if (!err.empty())
+      return Status::InvalidArgument(err);
+  }
+
+  // Enforce uniqueness constraints if schema defines unique fields
+  if (it->second.schema) {
+    std::vector<Document> docs;
+    docs.reserve(it->second.docs.size() + 1);
+    for (const auto &kv : it->second.docs) {
+      if (kv.first == key)
+        continue; // skip existing same key; replaced later
+      docs.emplace_back(deepCopyDocument(kv.second));
+    }
+    docs.emplace_back(deepCopyDocument(doc));
+    auto err = SchemaValidator::validateUnique(*it->second.schema, docs);
+    if (!err.empty())
+      return Status::FailedPrecondition(err);
+  }
+
+  it->second.docs[key] = deepCopyDocument(doc);
   return Status::OK();
 }
 
@@ -136,10 +220,78 @@ Result<Document> InMemoryDocumentStorage::get(const std::string &collection,
   auto cit = data_.find(collection);
   if (cit == data_.end())
     return Result<Document>::err(Status::NotFound("Unknown collection"));
-  auto kit = cit->second.find(key);
-  if (kit == cit->second.end())
+  auto kit = cit->second.docs.find(key);
+  if (kit == cit->second.docs.end())
     return Result<Document>::err(Status::NotFound("Key not found"));
   return Result<Document>::ok(deepCopyDocument(kit->second));
+}
+
+Status InMemoryDocumentStorage::erase(const std::string &collection,
+                                      const std::string &key) {
+  auto cit = data_.find(collection);
+  if (cit == data_.end())
+    return Status::NotFound("Unknown collection: " + collection);
+  auto kit = cit->second.docs.find(key);
+  if (kit == cit->second.docs.end())
+    return Status::NotFound("Key not found: " + key);
+  cit->second.docs.erase(kit);
+  return Status::OK();
+}
+
+Result<size_t>
+InMemoryDocumentStorage::count(const std::string &collection) const {
+  auto cit = data_.find(collection);
+  if (cit == data_.end())
+    return Result<size_t>::err(Status::NotFound("Unknown collection"));
+  return Result<size_t>::ok(cit->second.docs.size());
+}
+
+Result<std::vector<std::pair<std::string, Document>>>
+InMemoryDocumentStorage::query(const std::string &collection,
+                               const std::vector<std::string> &fields,
+                               const std::optional<DocPredicate> &where) {
+  auto cit = data_.find(collection);
+  if (cit == data_.end())
+    return Result<std::vector<std::pair<std::string, Document>>>::err(
+        Status::NotFound("Unknown collection"));
+
+  const auto &schemaOpt = cit->second.schema;
+
+  // Validate projection field names if we have a schema
+  if (schemaOpt && !fields.empty()) {
+    for (const auto &f : fields) {
+      if (!schemaOpt->hasField(f)) {
+        return Result<std::vector<std::pair<std::string, Document>>>::err(
+            Status::InvalidArgument("Unknown field in projection: " + f));
+      }
+    }
+  }
+
+  std::vector<std::pair<std::string, Document>> out;
+  out.reserve(cit->second.docs.size());
+  for (const auto &kv : cit->second.docs) {
+    const auto &k = kv.first;
+    const auto &doc = kv.second;
+    if (where) {
+      if (!evalDocPredicate(doc, *where))
+        continue;
+    }
+    if (fields.empty()) {
+      out.emplace_back(k, deepCopyDocument(doc));
+    } else {
+      Document proj;
+      for (const auto &fname : fields) {
+        auto it = doc.find(fname);
+        if (it != doc.end()) {
+          proj.emplace(fname, it->second ? it->second->clone() : nullptr);
+        }
+      }
+      out.emplace_back(k, std::move(proj));
+    }
+  }
+
+  return Result<std::vector<std::pair<std::string, Document>>>::ok(
+      std::move(out));
 }
 
 std::vector<std::string> InMemoryRelationalStorage::listTables() const {

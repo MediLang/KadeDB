@@ -28,6 +28,19 @@ struct Predicate {
 };
 
 /**
+ * A simple predicate for Document queries.
+ *
+ * Mirrors `Predicate` but targets a document field name instead of a table
+ * column. The RHS is carried as a `Value` to allow typed comparisons.
+ */
+struct DocPredicate {
+  enum class Op { Eq, Ne, Lt, Le, Gt, Ge };
+  std::string field;
+  Op op = Op::Eq;
+  std::unique_ptr<Value> rhs;
+};
+
+/**
  * Storage API for the relational model.
  *
  * Implementations should validate inputs against the provided TableSchema and
@@ -132,13 +145,69 @@ class DocumentStorage {
 public:
   virtual ~DocumentStorage() = default;
 
-  // Put a document under collection/key. Overwrites if exists.
+  /**
+   * Create a collection with an optional schema for validation.
+   * - Returns Status::AlreadyExists if the collection exists.
+   */
+  virtual Status createCollection(
+      const std::string &collection,
+      const std::optional<DocumentSchema> &schema = std::nullopt) = 0;
+
+  /**
+   * Drop a collection and all of its documents.
+   * - Returns Status::NotFound if the collection does not exist.
+   */
+  virtual Status dropCollection(const std::string &collection) = 0;
+
+  /**
+   * List existing collection names.
+   */
+  virtual std::vector<std::string> listCollections() const = 0;
+
+  /**
+   * Put (insert or replace) a document under collection/key.
+   * - If a schema exists for the collection, validates the document.
+   * - If the collection does not exist, it will be created (MVP behavior).
+   * - Returns Status::InvalidArgument if schema validation fails.
+   * - Returns Status::FailedPrecondition on uniqueness violations per schema.
+   */
   virtual Status put(const std::string &collection, const std::string &key,
                      const Document &doc) = 0;
 
-  // Get a document if present.
+  /**
+   * Get a document if present.
+   * - Returns Result::err(Status::NotFound) if collection/key is not found.
+   */
   virtual Result<Document> get(const std::string &collection,
                                const std::string &key) = 0;
+
+  /**
+   * Erase a document by key.
+   * - Returns Status::NotFound if collection or key is not found.
+   */
+  virtual Status erase(const std::string &collection,
+                       const std::string &key) = 0;
+
+  /**
+   * Count documents in a collection.
+   * - Returns Result::err(Status::NotFound) if the collection does not exist.
+   */
+  virtual Result<size_t> count(const std::string &collection) const = 0;
+
+  /**
+   * Query documents with optional field projection and predicate filter.
+   * - fields: empty means return entire Document values.
+   * - where: optional single-field predicate.
+   * - Returns Result::err(Status::NotFound) if collection missing.
+   * - Returns Result::err(Status::InvalidArgument) if requested projection
+   *   fields are unknown under the collection's schema (when schema exists).
+   *
+   * The returned vector carries pairs of (key, Document). Documents are deep
+   * copies and may be projected to only include requested fields.
+   */
+  virtual Result<std::vector<std::pair<std::string, Document>>>
+  query(const std::string &collection, const std::vector<std::string> &fields,
+        const std::optional<DocPredicate> &where = std::nullopt) = 0;
 };
 
 // In-memory implementations for development and testing
@@ -177,14 +246,28 @@ public:
   InMemoryDocumentStorage() = default;
   ~InMemoryDocumentStorage() override = default;
 
+  Status createCollection(const std::string &collection,
+                          const std::optional<DocumentSchema> &schema) override;
+  Status dropCollection(const std::string &collection) override;
+  std::vector<std::string> listCollections() const override;
+
   Status put(const std::string &collection, const std::string &key,
              const Document &doc) override;
   Result<Document> get(const std::string &collection,
                        const std::string &key) override;
+  Status erase(const std::string &collection, const std::string &key) override;
+  Result<size_t> count(const std::string &collection) const override;
+  Result<std::vector<std::pair<std::string, Document>>>
+  query(const std::string &collection, const std::vector<std::string> &fields,
+        const std::optional<DocPredicate> &where) override;
 
 private:
-  using Collection = std::unordered_map<std::string, Document>;
-  std::unordered_map<std::string, Collection> data_;
+  struct CollectionData {
+    std::optional<DocumentSchema> schema;
+    std::unordered_map<std::string, Document> docs; // key -> Document
+  };
+
+  std::unordered_map<std::string, CollectionData> data_;
 };
 
 } // namespace kadedb
