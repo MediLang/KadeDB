@@ -180,7 +180,7 @@
             "description": "Create an in-memory implementation of the RelationalStorage interface for testing and development.",
             "dependencies": [],
             "details": "1. Create a MemoryRelationalStorage class that implements RelationalStorage\n2. Implement internal data structures to store tables and rows\n3. Implement createTable() with validation for duplicate tables\n4. Implement insertRow() with schema validation\n5. Implement select() with filtering based on predicates\n6. Add proper error handling for all operations\n7. Optimize for development and testing use cases",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {

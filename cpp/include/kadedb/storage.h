@@ -1,6 +1,8 @@
 #pragma once
 
 #include <functional>
+#include <memory>
+#include <mutex>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -15,16 +17,45 @@
 namespace kadedb {
 
 /**
- * A simple predicate model for MVP SELECT filtering.
- * Supports basic comparisons on a single column. Right-hand side is carried as
- * a Value to allow typed comparisons using Value::compare.
+ * @defgroup StorageAPI Relational Storage API
+ * @brief Core interfaces and in-memory implementation for relational storage.
+ */
+
+/**
+ * @defgroup DocumentAPI Document Storage API
+ * @brief Core interfaces and in-memory implementation for document storage.
+ */
+
+/**
+ * Predicate model for SELECT/UPDATE/DELETE filtering.
+ *
+ * Backward compatible with simple single-column comparisons used in tests, and
+ * now supports logical composition (AND/OR/NOT) with multiple child predicates.
+ *
+ * Usage:
+ *  - Comparison (legacy): kind=Comparison, set column/op/rhs
+ *  - AND/OR: kind=And/Or, populate children with 2+ predicates
+ *  - NOT: kind=Not, populate children with exactly 1 predicate
+ *
+ * Empty-children semantics (edge cases):
+ *  - AND with zero children evaluates to true (neutral element)
+ *  - OR with zero children evaluates to false (neutral element)
+ *  - NOT with zero children evaluates to false
  */
 struct Predicate {
+  enum class Kind { Comparison, And, Or, Not };
   enum class Op { Eq, Ne, Lt, Le, Gt, Ge };
+
+  // Node kind (default Comparison for backward compatibility)
+  Kind kind = Kind::Comparison;
+
+  // Comparison payload (used when kind==Comparison)
   std::string column;
   Op op = Op::Eq;
-  // Right-hand side as a Value; caller provides an owning unique_ptr
-  std::unique_ptr<Value> rhs;
+  std::unique_ptr<Value> rhs; // Right-hand side as a Value
+
+  // Logical payload (used when kind==And/Or/Not)
+  std::vector<Predicate> children;
 };
 
 /**
@@ -32,12 +63,23 @@ struct Predicate {
  *
  * Mirrors `Predicate` but targets a document field name instead of a table
  * column. The RHS is carried as a `Value` to allow typed comparisons.
+ *
+ * Empty-children semantics (edge cases):
+ *  - AND with zero children evaluates to true (neutral element)
+ *  - OR with zero children evaluates to false (neutral element)
+ *  - NOT with zero children evaluates to false
  */
 struct DocPredicate {
+  enum class Kind { Comparison, And, Or, Not };
   enum class Op { Eq, Ne, Lt, Le, Gt, Ge };
+  // Node kind (default Comparison)
+  Kind kind = Kind::Comparison;
+  // Comparison payload
   std::string field;
   Op op = Op::Eq;
   std::unique_ptr<Value> rhs;
+  // Logical payload
+  std::vector<DocPredicate> children;
 };
 
 /**
@@ -54,6 +96,7 @@ struct DocPredicate {
  *  - select: NotFound when table missing; InvalidArgument when a requested
  *    projection column does not exist; Ok with ResultSet on success
  */
+/** @ingroup StorageAPI */
 class RelationalStorage {
 public:
   virtual ~RelationalStorage() = default;
@@ -141,6 +184,7 @@ public:
 };
 
 // Storage API for document model
+/** @ingroup DocumentAPI */
 class DocumentStorage {
 public:
   virtual ~DocumentStorage() = default;
@@ -211,6 +255,7 @@ public:
 };
 
 // In-memory implementations for development and testing
+/** @ingroup StorageAPI */
 class InMemoryRelationalStorage final : public RelationalStorage {
 public:
   InMemoryRelationalStorage() = default;
@@ -239,8 +284,11 @@ private:
     std::vector<Row> rows; // deep rows
   };
   std::unordered_map<std::string, TableData> tables_;
+  // Simple mutex for dev/test thread-safety of the in-memory maps/vectors
+  mutable std::mutex mtx_;
 };
 
+/** @ingroup DocumentAPI */
 class InMemoryDocumentStorage final : public DocumentStorage {
 public:
   InMemoryDocumentStorage() = default;

@@ -144,3 +144,24 @@ target_link_libraries(kadedb_document_storage_api_test PRIVATE KadeDB::kadedb_co
 target_compile_features(kadedb_document_storage_api_test PRIVATE cxx_std_17)
 
 add_test(NAME kadedb_document_storage_api_test COMMAND kadedb_document_storage_api_test)
+
+# Composite predicate semantics tests
+add_executable(kadedb_storage_predicates_test
+  storage_predicates_test.cpp
+)
+
+target_link_libraries(kadedb_storage_predicates_test PRIVATE KadeDB::kadedb_core)
+
+target_compile_features(kadedb_storage_predicates_test PRIVATE cxx_std_17)
+
+add_test(NAME kadedb_storage_predicates_test COMMAND kadedb_storage_predicates_test)
+
+add_executable(kadedb_document_predicates_test
+  document_predicates_test.cpp
+)
+
+target_link_libraries(kadedb_document_predicates_test PRIVATE KadeDB::kadedb_core)
+
+target_compile_features(kadedb_document_predicates_test PRIVATE cxx_std_17)
+
+add_test(NAME kadedb_document_predicates_test COMMAND kadedb_document_predicates_test)

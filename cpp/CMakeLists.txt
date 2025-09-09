@@ -74,3 +74,20 @@ add_executable(kadedb_serialization_bench
 target_link_libraries(kadedb_serialization_bench PRIVATE KadeDB::kadedb_core)
 
 target_compile_features(kadedb_serialization_bench PRIVATE cxx_std_17)
+
+# Examples
+add_executable(kadedb_inmemory_rel_example
+  examples/inmemory_rel_example.cpp
+)
+
+target_link_libraries(kadedb_inmemory_rel_example PRIVATE KadeDB::kadedb_core)
+
+target_compile_features(kadedb_inmemory_rel_example PRIVATE cxx_std_17)
+
+add_executable(kadedb_inmemory_rel_errors_example
+  examples/inmemory_rel_errors_example.cpp
+)
+
+target_link_libraries(kadedb_inmemory_rel_errors_example PRIVATE KadeDB::kadedb_core)
+
+target_compile_features(kadedb_inmemory_rel_errors_example PRIVATE cxx_std_17)

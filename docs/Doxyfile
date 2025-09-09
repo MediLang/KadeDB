@@ -1,0 +1,40 @@
+# Doxygen configuration for KadeDB
+# Minimal configuration focusing on C++ headers under cpp/include
+
+PROJECT_NAME           = "KadeDB"
+PROJECT_NUMBER         = "0.1.0"
+OUTPUT_DIRECTORY       = docs/build
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+QUIET                  = YES
+WARN_IF_UNDOCUMENTED   = NO
+GENERATE_XML           = YES
+XML_OUTPUT             = xml
+
+# Input paths
+INPUT                  = cpp/include
+FILE_PATTERNS          = *.h *.hpp
+RECURSIVE              = YES
+
+# Use Markdown
+MARKDOWN_SUPPORT       = YES
+EXTENSION_MAPPING      = md=markdown
+USE_MDFILE_AS_MAINPAGE = README.md
+
+# Extract and group docs
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = NO
+EXTRACT_STATIC         = NO
+
+# Source browser
+SOURCE_BROWSER         = YES
+INLINE_SOURCES         = NO
+
+# Dot/graphs (optional)
+HAVE_DOT               = NO
+CALL_GRAPH             = NO
+CALLER_GRAPH           = NO
+
+# HTML options
+GENERATE_TREEVIEW      = YES
+HTML_COLORSTYLE        = LIGHT

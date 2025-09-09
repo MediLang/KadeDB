@@ -4,16 +4,16 @@
 
 namespace kadedb {
 
-// Utility: evaluate predicate on a row using the table schema
-static bool evalPredicate(const TableSchema &schema, const Row &row,
-                          const Predicate &pred) {
+// Utility: evaluate a comparison predicate on a row
+static bool evalPredicateComparison(const TableSchema &schema, const Row &row,
+                                    const Predicate &pred) {
   size_t idx = schema.findColumn(pred.column);
   if (idx == TableSchema::npos)
     return false; // unknown column -> not matched
   const Value *lhs = row.values()[idx].get();
   const Value *rhs = pred.rhs.get();
   if (!lhs || !rhs)
-    return false; // null comparisons -> no match (MVP semantics)
+    return false; // null comparisons -> no match (semantics retained)
   int cmp = lhs->compare(*rhs);
   switch (pred.op) {
   case Predicate::Op::Eq:
@@ -32,15 +32,49 @@ static bool evalPredicate(const TableSchema &schema, const Row &row,
   return false;
 }
 
-// Utility: evaluate document predicate on a document
-static bool evalDocPredicate(const Document &doc, const DocPredicate &pred) {
+// Utility: evaluate predicate tree (supports And/Or/Not and Comparison)
+static bool evalPredicate(const TableSchema &schema, const Row &row,
+                          const Predicate &pred) {
+  using K = Predicate::Kind;
+  switch (pred.kind) {
+  case K::Comparison:
+    return evalPredicateComparison(schema, row, pred);
+  case K::And: {
+    // AND with zero children -> true (neutral element)
+    for (const auto &ch : pred.children) {
+      if (!evalPredicate(schema, row, ch))
+        return false;
+    }
+    return true;
+  }
+  case K::Or: {
+    // OR with zero children -> false (neutral element)
+    for (const auto &ch : pred.children) {
+      if (evalPredicate(schema, row, ch))
+        return true;
+    }
+    return false;
+  }
+  case K::Not: {
+    // NOT expects exactly one child; if none, treat as true negated -> false
+    if (pred.children.empty())
+      return false;
+    return !evalPredicate(schema, row, pred.children.front());
+  }
+  }
+  return false;
+}
+
+// Utility: evaluate document predicate comparison
+static bool evalDocPredicateComparison(const Document &doc,
+                                       const DocPredicate &pred) {
   auto it = doc.find(pred.field);
   if (it == doc.end())
     return false; // unknown field -> not matched
   const Value *lhs = it->second.get();
   const Value *rhs = pred.rhs.get();
   if (!lhs || !rhs)
-    return false; // null comparisons -> no match (MVP semantics)
+    return false; // null comparisons -> no match
   int cmp = lhs->compare(*rhs);
   switch (pred.op) {
   case DocPredicate::Op::Eq:
@@ -59,8 +93,38 @@ static bool evalDocPredicate(const Document &doc, const DocPredicate &pred) {
   return false;
 }
 
+// Utility: evaluate document predicate tree (And/Or/Not/Comparison)
+static bool evalDocPredicate(const Document &doc, const DocPredicate &pred) {
+  using K = DocPredicate::Kind;
+  switch (pred.kind) {
+  case K::Comparison:
+    return evalDocPredicateComparison(doc, pred);
+  case K::And: {
+    for (const auto &ch : pred.children) {
+      if (!evalDocPredicate(doc, ch))
+        return false;
+    }
+    return true;
+  }
+  case K::Or: {
+    for (const auto &ch : pred.children) {
+      if (evalDocPredicate(doc, ch))
+        return true;
+    }
+    return false;
+  }
+  case K::Not: {
+    if (pred.children.empty())
+      return false;
+    return !evalDocPredicate(doc, pred.children.front());
+  }
+  }
+  return false;
+}
+
 Status InMemoryRelationalStorage::createTable(const std::string &table,
                                               const TableSchema &schema) {
+  std::lock_guard<std::mutex> lk(mtx_);
   if (tables_.find(table) != tables_.end()) {
     return Status::AlreadyExists("Table already exists: " + table);
   }
@@ -70,6 +134,7 @@ Status InMemoryRelationalStorage::createTable(const std::string &table,
 
 Status InMemoryRelationalStorage::insertRow(const std::string &table,
                                             const Row &row) {
+  std::lock_guard<std::mutex> lk(mtx_);
   auto it = tables_.find(table);
   if (it == tables_.end()) {
     return Status::NotFound("Unknown table: " + table);
@@ -97,6 +162,7 @@ Result<ResultSet>
 InMemoryRelationalStorage::select(const std::string &table,
                                   const std::vector<std::string> &columns,
                                   const std::optional<Predicate> &where) {
+  std::lock_guard<std::mutex> lk(mtx_);
   auto it = tables_.find(table);
   if (it == tables_.end()) {
     return Result<ResultSet>::err(Status::NotFound("Unknown table: " + table));
@@ -267,6 +333,38 @@ InMemoryDocumentStorage::query(const std::string &collection,
     }
   }
 
+  // Helper to validate predicate fields exist in schema
+  auto validateWhereFields = [](const DocumentSchema &schema,
+                                const DocPredicate &pred, auto &self) -> bool {
+    using K = DocPredicate::Kind;
+    switch (pred.kind) {
+    case K::Comparison:
+      return schema.hasField(pred.field);
+    case K::And:
+    case K::Or: {
+      for (const auto &ch : pred.children) {
+        if (!self(schema, ch, self))
+          return false;
+      }
+      return true;
+    }
+    case K::Not: {
+      if (pred.children.empty())
+        return true; // treat empty NOT as valid (evaluates to false later)
+      return self(schema, pred.children.front(), self);
+    }
+    }
+    return false;
+  };
+
+  // Validate predicate fields against schema, if present
+  if (schemaOpt && where) {
+    if (!validateWhereFields(*schemaOpt, *where, validateWhereFields)) {
+      return Result<std::vector<std::pair<std::string, Document>>>::err(
+          Status::InvalidArgument("Unknown field in predicate"));
+    }
+  }
+
   std::vector<std::pair<std::string, Document>> out;
   out.reserve(cit->second.docs.size());
   for (const auto &kv : cit->second.docs) {
@@ -295,6 +393,7 @@ InMemoryDocumentStorage::query(const std::string &collection,
 }
 
 std::vector<std::string> InMemoryRelationalStorage::listTables() const {
+  std::lock_guard<std::mutex> lk(mtx_);
   std::vector<std::string> names;
   names.reserve(tables_.size());
   for (const auto &kv : tables_)
@@ -303,6 +402,7 @@ std::vector<std::string> InMemoryRelationalStorage::listTables() const {
 }
 
 Status InMemoryRelationalStorage::dropTable(const std::string &table) {
+  std::lock_guard<std::mutex> lk(mtx_);
   auto it = tables_.find(table);
   if (it == tables_.end())
     return Status::NotFound("Unknown table: " + table);
@@ -313,6 +413,7 @@ Status InMemoryRelationalStorage::dropTable(const std::string &table) {
 Result<size_t>
 InMemoryRelationalStorage::deleteRows(const std::string &table,
                                       const std::optional<Predicate> &where) {
+  std::lock_guard<std::mutex> lk(mtx_);
   auto it = tables_.find(table);
   if (it == tables_.end())
     return Result<size_t>::err(Status::NotFound("Unknown table: " + table));
@@ -343,6 +444,7 @@ Status InMemoryRelationalStorage::updateRows(
     const std::string &table,
     const std::unordered_map<std::string, std::unique_ptr<Value>> &assignments,
     const std::optional<Predicate> &where) {
+  std::lock_guard<std::mutex> lk(mtx_);
   auto it = tables_.find(table);
   if (it == tables_.end())
     return Status::NotFound("Unknown table: " + table);
@@ -391,6 +493,7 @@ Status InMemoryRelationalStorage::updateRows(
 }
 
 Status InMemoryRelationalStorage::truncateTable(const std::string &table) {
+  std::lock_guard<std::mutex> lk(mtx_);
   auto it = tables_.find(table);
   if (it == tables_.end())
     return Status::NotFound("Unknown table: " + table);
