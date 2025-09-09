@@ -55,14 +55,14 @@ jobs:
             test_preset: release
           - os: macos-latest
             build_type: Debug
-            preset: debug
-            build_preset: debug
-            test_preset: debug
+            preset: macos-clang-debug
+            build_preset: macos-clang-debug
+            test_preset: macos-clang-debug
           - os: macos-latest
             build_type: Release
-            preset: release
-            build_preset: release
-            test_preset: release
+            preset: macos-clang-release
+            build_preset: macos-clang-release
+            test_preset: macos-clang-release
           - os: windows-latest
             build_type: Debug
             preset: windows-vs2022
@@ -89,6 +89,17 @@ jobs:
         run: |
           brew update
           brew install ninja || true
+
+      - name: Set clang as default (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          echo "CC=clang" >> $GITHUB_ENV
+          echo "CXX=clang++" >> $GITHUB_ENV
+
+      - name: Show compiler versions
+        run: |
+          echo "CC=$(which ${CC:-cc})"; ${CC:-cc} --version || true
+          echo "CXX=$(which ${CXX:-c++})"; ${CXX:-c++} --version || true
 
       - name: Install Ninja (Windows)
         if: runner.os == 'Windows'
