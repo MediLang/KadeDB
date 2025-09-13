@@ -96,10 +96,25 @@ jobs:
           echo "CC=clang" >> $GITHUB_ENV
           echo "CXX=clang++" >> $GITHUB_ENV
 
-      - name: Show compiler versions
+      - name: Show compiler versions (non-Windows)
+        if: runner.os != 'Windows'
+        shell: bash
         run: |
           echo "CC=$(which ${CC:-cc})"; ${CC:-cc} --version || true
           echo "CXX=$(which ${CXX:-c++})"; ${CXX:-c++} --version || true
+
+      - name: Show compiler versions (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $cc = if ($env:CC) { $env:CC } else { "cl" }
+          $cxx = if ($env:CXX) { $env:CXX } else { "cl" }
+          $ccPath = (Get-Command $cc -ErrorAction SilentlyContinue).Source
+          $cxxPath = (Get-Command $cxx -ErrorAction SilentlyContinue).Source
+          Write-Host "CC path: $ccPath"
+          if ($cc -eq "cl") { cl 2>&1 | Select-Object -First 1 | Out-Host } else { & $cc --version 2>$null | Out-Host }
+          Write-Host "CXX path: $cxxPath"
+          if ($cxx -eq "cl") { cl 2>&1 | Select-Object -First 1 | Out-Host } else { & $cxx --version 2>$null | Out-Host }
 
       - name: Install Ninja (Windows)
         if: runner.os == 'Windows'
