@@ -220,6 +220,7 @@ InMemoryRelationalStorage::select(const std::string &table,
 Status InMemoryDocumentStorage::createCollection(
     const std::string &collection,
     const std::optional<DocumentSchema> &schema) {
+  std::lock_guard<std::mutex> lk(mtx_);
   if (data_.find(collection) != data_.end())
     return Status::AlreadyExists("Collection already exists: " + collection);
   CollectionData cd;
@@ -229,6 +230,7 @@ Status InMemoryDocumentStorage::createCollection(
 }
 
 Status InMemoryDocumentStorage::dropCollection(const std::string &collection) {
+  std::lock_guard<std::mutex> lk(mtx_);
   auto it = data_.find(collection);
   if (it == data_.end())
     return Status::NotFound("Unknown collection: " + collection);
@@ -237,6 +239,7 @@ Status InMemoryDocumentStorage::dropCollection(const std::string &collection) {
 }
 
 std::vector<std::string> InMemoryDocumentStorage::listCollections() const {
+  std::lock_guard<std::mutex> lk(mtx_);
   std::vector<std::string> names;
   names.reserve(data_.size());
   for (const auto &kv : data_)
@@ -247,6 +250,7 @@ std::vector<std::string> InMemoryDocumentStorage::listCollections() const {
 Status InMemoryDocumentStorage::put(const std::string &collection,
                                     const std::string &key,
                                     const Document &doc) {
+  std::lock_guard<std::mutex> lk(mtx_);
   // Create collection lazily if missing (MVP behavior)
   auto it = data_.find(collection);
   if (it == data_.end()) {
@@ -283,6 +287,7 @@ Status InMemoryDocumentStorage::put(const std::string &collection,
 
 Result<Document> InMemoryDocumentStorage::get(const std::string &collection,
                                               const std::string &key) {
+  std::lock_guard<std::mutex> lk(mtx_);
   auto cit = data_.find(collection);
   if (cit == data_.end())
     return Result<Document>::err(Status::NotFound("Unknown collection"));
@@ -294,6 +299,7 @@ Result<Document> InMemoryDocumentStorage::get(const std::string &collection,
 
 Status InMemoryDocumentStorage::erase(const std::string &collection,
                                       const std::string &key) {
+  std::lock_guard<std::mutex> lk(mtx_);
   auto cit = data_.find(collection);
   if (cit == data_.end())
     return Status::NotFound("Unknown collection: " + collection);
@@ -306,6 +312,7 @@ Status InMemoryDocumentStorage::erase(const std::string &collection,
 
 Result<size_t>
 InMemoryDocumentStorage::count(const std::string &collection) const {
+  std::lock_guard<std::mutex> lk(mtx_);
   auto cit = data_.find(collection);
   if (cit == data_.end())
     return Result<size_t>::err(Status::NotFound("Unknown collection"));
@@ -316,6 +323,7 @@ Result<std::vector<std::pair<std::string, Document>>>
 InMemoryDocumentStorage::query(const std::string &collection,
                                const std::vector<std::string> &fields,
                                const std::optional<DocPredicate> &where) {
+  std::lock_guard<std::mutex> lk(mtx_);
   auto cit = data_.find(collection);
   if (cit == data_.end())
     return Result<std::vector<std::pair<std::string, Document>>>::err(

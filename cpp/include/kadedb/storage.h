@@ -316,6 +316,8 @@ private:
   };
 
   std::unordered_map<std::string, CollectionData> data_;
+  // Simple mutex for dev/test thread-safety of the in-memory maps
+  mutable std::mutex mtx_;
 };
 
 } // namespace kadedb
