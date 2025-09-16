@@ -96,6 +96,12 @@ jobs:
           echo "CC=clang" >> $GITHUB_ENV
           echo "CXX=clang++" >> $GITHUB_ENV
 
+      - name: Setup Visual Studio environment (Windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
       - name: Show compiler versions (non-Windows)
         if: runner.os != 'Windows'
         shell: bash
@@ -112,9 +118,25 @@ jobs:
           $ccPath = (Get-Command $cc -ErrorAction SilentlyContinue).Source
           $cxxPath = (Get-Command $cxx -ErrorAction SilentlyContinue).Source
           Write-Host "CC path: $ccPath"
-          if ($cc -eq "cl") { cl 2>&1 | Select-Object -First 1 | Out-Host } else { & $cc --version 2>$null | Out-Host }
+          if ($ccPath) {
+            if ($cc -eq "cl") {
+              try { cl 2>&1 | Select-Object -First 1 | Out-Host } catch { Write-Host "cl.exe found but failed to run: $_" }
+            } else {
+              try { & $cc --version 2>$null | Out-Host } catch { Write-Host "$cc found but failed to run: $_" }
+            }
+          } else {
+            Write-Host "CC compiler '$cc' not found in PATH"
+          }
           Write-Host "CXX path: $cxxPath"
-          if ($cxx -eq "cl") { cl 2>&1 | Select-Object -First 1 | Out-Host } else { & $cxx --version 2>$null | Out-Host }
+          if ($cxxPath) {
+            if ($cxx -eq "cl") {
+              try { cl 2>&1 | Select-Object -First 1 | Out-Host } catch { Write-Host "cl.exe found but failed to run: $_" }
+            } else {
+              try { & $cxx --version 2>$null | Out-Host } catch { Write-Host "$cxx found but failed to run: $_" }
+            }
+          } else {
+            Write-Host "CXX compiler '$cxx' not found in PATH"
+          }
 
       - name: Install Ninja (Windows)
         if: runner.os == 'Windows'
