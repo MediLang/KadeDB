@@ -283,7 +283,13 @@ Status InMemoryDocumentStorage::put(const std::string &collection,
       return Status::FailedPrecondition(err);
   }
 
-  it->second.docs[key] = deepCopyDocument(doc);
+  // Explicitly move the deep-copied Document to avoid any chance of MSVC
+  // selecting a copy-assignment path for the unordered_map value.
+  {
+    Document docCopy = deepCopyDocument(doc);
+    it->second.docs.erase(key);
+    it->second.docs.emplace(key, std::move(docCopy));
+  }
   return Status::OK();
 }
 
@@ -385,7 +391,9 @@ InMemoryDocumentStorage::query(const std::string &collection,
         continue;
     }
     if (fields.empty()) {
-      out.emplace_back(k, deepCopyDocument(doc));
+      // Avoid any accidental copies of Document by moving an explicit temp
+      Document copy = deepCopyDocument(doc);
+      out.emplace_back(k, std::move(copy));
     } else {
       Document proj;
       for (const auto &fname : fields) {
