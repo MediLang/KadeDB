@@ -399,7 +399,12 @@ InMemoryDocumentStorage::query(const std::string &collection,
       for (const auto &fname : fields) {
         auto it = doc.find(fname);
         if (it != doc.end()) {
-          proj.emplace(fname, it->second ? it->second->clone() : nullptr);
+          if (it->second)
+            proj.emplace(std::piecewise_construct, std::forward_as_tuple(fname),
+                         std::forward_as_tuple(it->second->clone()));
+          else
+            proj.emplace(std::piecewise_construct, std::forward_as_tuple(fname),
+                         std::forward_as_tuple(nullptr));
         }
       }
       out.emplace_back(k, std::move(proj));
