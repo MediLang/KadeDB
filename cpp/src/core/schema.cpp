@@ -256,9 +256,11 @@ Document deepCopyDocument(const Document &doc) {
   out.reserve(doc.size());
   for (const auto &kv : doc) {
     if (kv.second)
-      out.emplace(kv.first, kv.second->clone());
+      out.emplace(std::piecewise_construct, std::forward_as_tuple(kv.first),
+                  std::forward_as_tuple(kv.second->clone()));
     else
-      out.emplace(kv.first, nullptr);
+      out.emplace(std::piecewise_construct, std::forward_as_tuple(kv.first),
+                  std::forward_as_tuple(nullptr));
   }
   return out;
 }
