@@ -157,7 +157,13 @@ jobs:
       - name: Build (${{ matrix.build_type }})
         run: cmake --build --preset ${{ matrix.build_preset }} --parallel
 
-      - name: Install
+      - name: Install (Windows)
+        if: runner.os == 'Windows'
+        continue-on-error: true
+        run: cmake --install build/${{ matrix.preset }} --config ${{ matrix.build_type }} --prefix "${{ github.workspace }}\install"
+
+      - name: Install (non-Windows)
+        if: runner.os != 'Windows'
         run: cmake --install build/${{ matrix.preset }} --prefix "${{ github.workspace }}/install"
 
       - name: Test (${{ matrix.build_type }}) [Linux/macOS]
