@@ -323,9 +323,9 @@ Document readDocument(std::istream &is) {
     std::string name = readString(is);
     uint8_t isNull = readU8(is);
     if (!isNull) {
-      d.emplace(std::move(name), readValue(is));
+      d.try_emplace(std::move(name), readValue(is));
     } else {
-      d.emplace(std::move(name), nullptr);
+      d.try_emplace(std::move(name), nullptr);
     }
   }
   return d;
@@ -786,9 +786,9 @@ Document documentFromJson(const std::string &s) {
       while (b > a && isspace(static_cast<unsigned char>(val[b - 1])))
         --b;
       if (a == b || (b - a == 4 && val.substr(a, 4) == "null")) {
-        d.emplace(std::move(key), nullptr);
+        d.try_emplace(std::move(key), nullptr);
       } else {
-        d.emplace(std::move(key), fromJson(val.substr(a, b - a)));
+        d.try_emplace(std::move(key), fromJson(val.substr(a, b - a)));
       }
     }
   }
@@ -809,9 +809,9 @@ Document documentFromJson(const std::string &s) {
           while (b > a && isspace(static_cast<unsigned char>(val[b - 1])))
             --b;
           if (a == b || (b - a == 4 && val.substr(a, 4) == "null")) {
-            d.emplace(std::move(key), nullptr);
+            d.try_emplace(std::move(key), nullptr);
           } else {
-            d.emplace(std::move(key), fromJson(val.substr(a, b - a)));
+            d.try_emplace(std::move(key), fromJson(val.substr(a, b - a)));
           }
         }
       }
