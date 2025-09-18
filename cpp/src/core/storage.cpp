@@ -391,9 +391,11 @@ InMemoryDocumentStorage::query(const std::string &collection,
         continue;
     }
     if (fields.empty()) {
-      // Avoid any accidental copies of Document by moving an explicit temp
+      // Avoid any accidental copies of Document by constructing the pair
+      // in-place with piecewise_construct and moving the Document value.
       Document copy = deepCopyDocument(doc);
-      out.emplace_back(k, std::move(copy));
+      out.emplace_back(std::piecewise_construct, std::forward_as_tuple(k),
+                       std::forward_as_tuple(std::move(copy)));
     } else {
       Document proj;
       for (const auto &fname : fields) {
@@ -407,7 +409,8 @@ InMemoryDocumentStorage::query(const std::string &collection,
                          std::forward_as_tuple(nullptr));
         }
       }
-      out.emplace_back(k, std::move(proj));
+      out.emplace_back(std::piecewise_construct, std::forward_as_tuple(k),
+                       std::forward_as_tuple(std::move(proj)));
     }
   }
 
