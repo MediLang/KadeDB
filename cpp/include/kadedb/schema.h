@@ -214,6 +214,12 @@ public:
                                     const std::vector<Document> &docs,
                                     bool ignoreNulls = true);
 
+  // Overload to validate uniqueness across a set of document references
+  // without requiring copies/moves of Document (which contains unique_ptr).
+  static std::string validateUnique(const DocumentSchema &schema,
+                                    const std::vector<const Document *> &docs,
+                                    bool ignoreNulls = true);
+
 private:
   static bool valueMatches(ColumnType ct, const Value &v);
   static bool checkConstraints(const Column &col, const Value &v,

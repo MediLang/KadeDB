@@ -268,15 +268,17 @@ Status InMemoryDocumentStorage::put(const std::string &collection,
 
   // Enforce uniqueness constraints if schema defines unique fields
   if (it->second.schema) {
-    std::vector<Document> docs;
-    docs.reserve(it->second.docs.size() + 1);
+    // Avoid copying/moving Document (contains unique_ptr) to prevent
+    // MSVC from attempting to copy during potential vector reallocation.
+    std::vector<const Document *> docPtrs;
+    docPtrs.reserve(it->second.docs.size() + 1);
     for (const auto &kv : it->second.docs) {
       if (kv.first == key)
         continue; // skip existing same key; replaced later
-      docs.emplace_back(deepCopyDocument(kv.second));
+      docPtrs.emplace_back(&kv.second);
     }
-    docs.emplace_back(deepCopyDocument(doc));
-    auto err = SchemaValidator::validateUnique(*it->second.schema, docs);
+    docPtrs.emplace_back(&doc);
+    auto err = SchemaValidator::validateUnique(*it->second.schema, docPtrs);
     if (!err.empty())
       return Status::FailedPrecondition(err);
   }
