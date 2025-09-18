@@ -212,6 +212,45 @@ std::string SchemaValidator::validateRow(const TableSchema &schema,
   return {};
 }
 
+std::string
+SchemaValidator::validateUnique(const DocumentSchema &schema,
+                                const std::vector<const Document *> &docs,
+                                bool ignoreNulls) {
+  std::vector<std::string> uniqueFields;
+  uniqueFields.reserve(schema.fields().size());
+  for (const auto &kv : schema.fields()) {
+    if (kv.second.unique)
+      uniqueFields.push_back(kv.first);
+  }
+  if (uniqueFields.empty())
+    return {};
+
+  std::vector<std::unordered_map<std::string, size_t>> seen(
+      uniqueFields.size());
+  for (size_t di = 0; di < docs.size(); ++di) {
+    const Document &doc = *docs[di];
+    for (size_t ui = 0; ui < uniqueFields.size(); ++ui) {
+      const auto &fname = uniqueFields[ui];
+      auto it = doc.find(fname);
+      bool isNullish = (it == doc.end()) || (!it->second) ||
+                       (it->second && it->second->type() == ValueType::Null);
+      if (isNullish) {
+        if (ignoreNulls)
+          continue;
+        auto [sit, inserted] = seen[ui].emplace("<null>", di);
+        if (!inserted)
+          return "Duplicate value for unique field '" + fname + "'";
+        continue;
+      }
+      std::string key = it->second->toString();
+      auto [sit, inserted] = seen[ui].emplace(std::move(key), di);
+      if (!inserted)
+        return "Duplicate value for unique field '" + fname + "'";
+    }
+  }
+  return {};
+}
+
 Document deepCopyDocument(const Document &doc) {
   Document out;
   out.reserve(doc.size());
