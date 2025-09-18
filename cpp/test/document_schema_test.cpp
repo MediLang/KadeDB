@@ -58,25 +58,28 @@ int main() {
   auto err3 = SchemaValidator::validateDocument(ds, d3);
   assert(err3.empty());
 
-  // Uniqueness checks
-  std::vector<Document> docs;
-  // Reserve to avoid reallocation (which would require copying Documents)
-  docs.reserve(3);
-  docs.emplace_back();
-  docs.back()["id"] = std::make_unique<IntegerValue>(1);
-  docs.back()["name"] = std::make_unique<StringValue>(std::string{"a"});
-  docs.emplace_back();
-  docs.back()["id"] = std::make_unique<IntegerValue>(2);
-  docs.back()["name"] = std::make_unique<StringValue>(std::string{"b"});
+  // Uniqueness checks (use pointer-based API to avoid moving Documents)
+  Document ud1; // unique docs container
+  ud1["id"] = std::make_unique<IntegerValue>(1);
+  ud1["name"] = std::make_unique<StringValue>(std::string{"a"});
+  Document ud2;
+  ud2["id"] = std::make_unique<IntegerValue>(2);
+  ud2["name"] = std::make_unique<StringValue>(std::string{"b"});
 
-  auto err4 = SchemaValidator::validateUnique(ds, docs);
+  std::vector<const Document *> docPtrs;
+  docPtrs.reserve(3);
+  docPtrs.push_back(&ud1);
+  docPtrs.push_back(&ud2);
+
+  auto err4 = SchemaValidator::validateUnique(ds, docPtrs);
   assert(err4.empty());
 
   // Duplicate id
-  docs.emplace_back();
-  docs.back()["id"] = std::make_unique<IntegerValue>(2);
-  docs.back()["name"] = std::make_unique<StringValue>(std::string{"c"});
-  auto err5 = SchemaValidator::validateUnique(ds, docs);
+  Document ud3;
+  ud3["id"] = std::make_unique<IntegerValue>(2);
+  ud3["name"] = std::make_unique<StringValue>(std::string{"c"});
+  docPtrs.push_back(&ud3);
+  auto err5 = SchemaValidator::validateUnique(ds, docPtrs);
   assert(!err5.empty());
 
   return 0;
