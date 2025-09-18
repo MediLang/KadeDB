@@ -154,7 +154,71 @@ private:
 };
 
 // A simple in-memory document representation
-using Document = std::unordered_map<std::string, std::unique_ptr<Value>>;
+// Wrapper around unordered_map to guarantee noexcept moves on MSVC and expose
+// a map-like API used throughout the codebase.
+class Document {
+public:
+  using map_type = std::unordered_map<std::string, std::unique_ptr<Value>>;
+  using value_type = map_type::value_type;
+  using iterator = map_type::iterator;
+  using const_iterator = map_type::const_iterator;
+
+  Document() = default;
+
+  // Non-copyable (unique_ptr values)
+  Document(const Document &) = delete;
+  Document &operator=(const Document &) = delete;
+
+  // Strong noexcept moves implemented via swap to avoid MSVC picking copy
+  Document(Document &&other) noexcept { swap(other); }
+  Document &operator=(Document &&other) noexcept {
+    if (this != &other)
+      swap(other);
+    return *this;
+  }
+
+  void swap(Document &other) noexcept { map_.swap(other.map_); }
+
+  // Capacity
+  size_t size() const noexcept { return map_.size(); }
+  bool empty() const noexcept { return map_.empty(); }
+  void reserve(size_t n) { map_.reserve(n); }
+
+  // Iteration
+  iterator begin() noexcept { return map_.begin(); }
+  const_iterator begin() const noexcept { return map_.begin(); }
+  const_iterator cbegin() const noexcept { return map_.cbegin(); }
+  iterator end() noexcept { return map_.end(); }
+  const_iterator end() const noexcept { return map_.end(); }
+  const_iterator cend() const noexcept { return map_.cend(); }
+
+  // Lookup
+  iterator find(const std::string &key) { return map_.find(key); }
+  const_iterator find(const std::string &key) const { return map_.find(key); }
+
+  // Element access
+  map_type::mapped_type &operator[](const std::string &key) {
+    return map_[key];
+  }
+  map_type::mapped_type &at(const std::string &key) { return map_.at(key); }
+  const map_type::mapped_type &at(const std::string &key) const {
+    return map_.at(key);
+  }
+
+  // Modifiers (forward to underlying map)
+  template <class... Args> std::pair<iterator, bool> emplace(Args &&...args) {
+    return map_.emplace(std::forward<Args>(args)...);
+  }
+  template <class... Args>
+  std::pair<iterator, bool> try_emplace(const std::string &key,
+                                        Args &&...args) {
+    return map_.try_emplace(key, std::forward<Args>(args)...);
+  }
+  void clear() noexcept { map_.clear(); }
+
+private:
+  map_type map_;
+};
 
 // Deep copy helper for Document (since Document is an alias, not a class)
 Document deepCopyDocument(const Document &doc);
