@@ -50,6 +50,32 @@ if(NOT MSVC)
   if(KADEDB_ENABLE_COVERAGE)
     add_compile_options(--coverage -O0 -g)
     add_link_options(--coverage)
+    # Coverage report target (requires gcovr)
+    find_program(GCOVR_EXECUTABLE gcovr)
+    if(GCOVR_EXECUTABLE)
+      set(KADEDB_COVERAGE_DIR ${CMAKE_BINARY_DIR}/coverage)
+      file(MAKE_DIRECTORY ${KADEDB_COVERAGE_DIR})
+      add_custom_target(coverage
+        COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
+        COMMAND ${GCOVR_EXECUTABLE}
+                -r ${CMAKE_SOURCE_DIR}
+                --exclude '.*build/.*'
+                --exclude '.*bindings/.*'
+                --exclude '.*install/.*'
+                --exclude '.*docs/.*'
+                --exclude '.*cmake/.*'
+                --exclude '.*lite/.*' # exclude lite in core coverage; it has its own tests
+                --xml=${KADEDB_COVERAGE_DIR}/coverage.xml
+                --html-details=${KADEDB_COVERAGE_DIR}/index.html
+                --print-summary
+                --fail-under-lines=55
+                --fail-under-branches=30
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        COMMENT "Running tests and generating coverage report with gcovr"
+        VERBATIM)
+    else()
+      message(WARNING "gcovr not found; 'coverage' target will not be available. Install gcovr to generate coverage reports.")
+    endif()
   endif()
 endif()
 

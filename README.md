@@ -52,6 +52,34 @@ cmake --build --preset debug -j
 ctest --output-on-failure
 ```
 
+## Testing and Coverage
+
+Run the test suite (default Debug preset):
+
+```bash
+cmake -S . -B build/debug -DCMAKE_BUILD_TYPE=Debug
+cmake --build build/debug -j
+ctest --test-dir build/debug --output-on-failure
+```
+
+Enable coverage (non-MSVC GCC/Clang) and generate reports with gcovr:
+
+```bash
+# Install gcovr (one-time)
+python3 -m pip install --user gcovr
+
+# Configure with coverage flags
+cmake -S . -B build/debug -DKADEDB_ENABLE_COVERAGE=ON
+cmake --build build/debug -j
+
+# Generate coverage (runs tests and writes reports)
+cmake --build build/debug --target coverage
+
+# Reports
+# - HTML: build/debug/coverage/index.html
+# - XML:  build/debug/coverage/coverage.xml
+```
+
 Explore examples:
 
 - `cpp/examples/inmemory_rel_example.cpp`

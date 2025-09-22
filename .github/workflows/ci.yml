@@ -201,27 +201,22 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build gcovr
+          sudo apt-get install -y ninja-build python3-pip
+          python3 -m pip install --user gcovr
 
-      - name: Configure (RelWithDebInfo Coverage)
-        run: cmake -S . --preset relwithdebinfo-coverage
+      - name: Configure (RelWithDebInfo + Coverage flags)
+        run: cmake -S . -B build/coverage -DKADEDB_ENABLE_COVERAGE=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo
 
-      - name: Build (RelWithDebInfo Coverage)
-        run: cmake --build --preset relwithdebinfo-coverage --parallel
+      - name: Build (Coverage)
+        run: cmake --build build/coverage --parallel
 
-      - name: Test (Coverage build)
-        run: ctest --test-dir build/relwithdebinfo-coverage --output-on-failure
-        shell: bash
-
-      - name: Generate coverage reports
-        run: |
-          gcovr -r . --xml -o build/relwithdebinfo-coverage/coverage.xml
-          gcovr -r . --branches --txt -o build/relwithdebinfo-coverage/coverage.txt || true
+      - name: Generate coverage reports (runs tests)
+        run: cmake --build build/coverage --target coverage
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
-          files: build/relwithdebinfo-coverage/coverage.xml
+          files: build/coverage/coverage/coverage.xml
           flags: unittests
           fail_ci_if_error: false
 
@@ -230,5 +225,5 @@ jobs:
         with:
           name: coverage-reports
           path: |
-            build/relwithdebinfo-coverage/coverage.xml
-            build/relwithdebinfo-coverage/coverage.txt
+            build/coverage/coverage/coverage.xml
+            build/coverage/coverage/index.html

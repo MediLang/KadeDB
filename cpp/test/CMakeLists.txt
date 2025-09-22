@@ -165,3 +165,47 @@ target_link_libraries(kadedb_document_predicates_test PRIVATE KadeDB::kadedb_cor
 target_compile_features(kadedb_document_predicates_test PRIVATE cxx_std_17)
 
 add_test(NAME kadedb_document_predicates_test COMMAND kadedb_document_predicates_test)
+
+# Relational error cases tests
+add_executable(kadedb_relational_error_cases_test
+  relational_error_cases_test.cpp
+)
+
+target_link_libraries(kadedb_relational_error_cases_test PRIVATE KadeDB::kadedb_core)
+
+target_compile_features(kadedb_relational_error_cases_test PRIVATE cxx_std_17)
+
+add_test(NAME kadedb_relational_error_cases_test COMMAND kadedb_relational_error_cases_test)
+
+# Document error cases tests
+add_executable(kadedb_document_error_cases_test
+  document_error_cases_test.cpp
+)
+
+target_link_libraries(kadedb_document_error_cases_test PRIVATE KadeDB::kadedb_core)
+
+target_compile_features(kadedb_document_error_cases_test PRIVATE cxx_std_17)
+
+add_test(NAME kadedb_document_error_cases_test COMMAND kadedb_document_error_cases_test)
+
+# Combined storage integration test
+add_executable(kadedb_combined_storage_integration_test
+  combined_storage_integration_test.cpp
+)
+
+target_link_libraries(kadedb_combined_storage_integration_test PRIVATE KadeDB::kadedb_core)
+
+target_compile_features(kadedb_combined_storage_integration_test PRIVATE cxx_std_17)
+
+add_test(NAME kadedb_combined_storage_integration_test COMMAND kadedb_combined_storage_integration_test)
+
+# Basic concurrency tests (in-memory thread-safety)
+add_executable(kadedb_concurrency_test
+  concurrency_test.cpp
+)
+
+target_link_libraries(kadedb_concurrency_test PRIVATE KadeDB::kadedb_core)
+
+target_compile_features(kadedb_concurrency_test PRIVATE cxx_std_17)
+
+add_test(NAME kadedb_concurrency_test COMMAND kadedb_concurrency_test)

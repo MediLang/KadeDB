@@ -154,7 +154,7 @@
         "dependencies": [
           2
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -198,7 +198,7 @@
             "description": "Develop comprehensive unit tests for both storage APIs and their in-memory implementations.",
             "dependencies": [],
             "details": "1. Create test fixtures for both storage implementations\n2. Test table/collection creation with valid and invalid schemas\n3. Test data insertion with valid and invalid data\n4. Test data retrieval with various query patterns\n5. Test error handling for all edge cases (e.g., duplicate tables, missing data)\n6. Test concurrent operations if applicable\n7. Measure and document test coverage\n8. Create integration tests that use both APIs together if needed",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           }
         ]

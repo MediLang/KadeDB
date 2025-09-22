@@ -90,7 +90,7 @@ static DocumentSchema sampleDocumentSchema() {
   return ds;
 }
 
-static Stat bench_value(size_t n) {
+[[maybe_unused]] static Stat bench_value(size_t n) {
   auto vals = sampleValues(n);
   // Binary
   double b_ser = time_ms(n, [&]() {
@@ -119,6 +119,9 @@ static Stat bench_value(size_t n) {
     for (auto &s : jsons)
       (void)json::fromJson(s);
   });
+  // Suppress unused variable warnings in some builds
+  (void)j_ser;
+  (void)j_de;
   return {b_ser + 0.0, b_de + 0.0}; // we’ll print JSON separately below
 }
 
