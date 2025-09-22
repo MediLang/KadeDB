@@ -74,8 +74,11 @@ int main() {
   assert(vec.size() == 1);
 
   // Lookup username of that user via relational select with predicate
-  int userId =
-      static_cast<const IntegerValue &>(*vec[0].second.at("user_id")).value();
+  auto it_uid = vec[0].second.find("user_id");
+  assert(it_uid != vec[0].second.end());
+  assert(it_uid->second != nullptr);
+  assert(it_uid->second->type() == ValueType::Integer);
+  int userId = static_cast<const IntegerValue &>(*it_uid->second).value();
 
   std::optional<Predicate> w2;
   w2.emplace();
