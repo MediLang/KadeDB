@@ -229,8 +229,8 @@ jobs:
             build/coverage/coverage/index.html
 
   asan_integration:
-    # Run on PRs and main to capture a stacktrace for the flaky Release-only segfault
-    if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
+    # Run on push and PR to capture a stacktrace for the flaky Release-only segfault
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
     name: ASAN Integration (ubuntu-latest - RelWithDebInfo)
     runs-on: ubuntu-latest
     steps:
@@ -244,6 +244,8 @@ jobs:
 
       - name: Configure (RelWithDebInfo + ASAN/UBSAN)
         run: |
+          # Force diagnostic deref in this job only to elicit sanitizer reports
+          export CXXFLAGS="$CXXFLAGS -DKADEDB_FORCE_DOC_DEREF=1"
           cmake -S . -B build/relasan \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo \
             -DKADEDB_ENABLE_ASAN=ON \
@@ -305,3 +307,41 @@ jobs:
             asan_ctest_output.txt
             asan_binary_output.txt
             asan_gdb_bt.txt
+
+  gdb_release:
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    name: GDB (ubuntu-latest - RelWithDebInfo)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies (Ninja, gdb)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build gdb
+
+      - name: Configure (RelWithDebInfo)
+        run: |
+          cmake -S . -B build/relwithdebinfo -DCMAKE_BUILD_TYPE=RelWithDebInfo
+
+      - name: Build (RelWithDebInfo)
+        run: cmake --build build/relwithdebinfo --parallel
+
+      - name: Run failing test under gdb
+        shell: bash
+        run: |
+          set +e
+          BIN="build/relwithdebinfo/bin/kadedb_combined_storage_integration_test"
+          if [ -x "$BIN" ]; then
+            gdb -q -batch -ex run -ex "bt full" --args "$BIN" > gdb_release_bt.txt 2>&1 || true
+          else
+            echo "Binary not found: $BIN" | tee gdb_release_bt.txt
+          fi
+          exit 0
+
+      - name: Upload GDB (RelWithDebInfo) artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gdb-release-backtrace
+          path: gdb_release_bt.txt
