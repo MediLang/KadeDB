@@ -66,6 +66,16 @@ public:
   const T &value() const { return *value_; }
   T &value() { return *value_; }
 
+  // Move-out accessor: safely moves the contained value out of the Result,
+  // leaving the optional disengaged. Caller must ensure hasValue().
+  T takeValue() {
+    if (!status_.ok() || !value_.has_value())
+      throw std::runtime_error("Result::takeValue(): no value present");
+    T tmp = std::move(*value_);
+    value_.reset();
+    return tmp;
+  }
+
 private:
   explicit Result(Status s) : status_(std::move(s)) {}
   Result(Status s, T v) : status_(std::move(s)), value_(std::move(v)) {}
