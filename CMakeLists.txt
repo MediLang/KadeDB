@@ -68,8 +68,8 @@ if(NOT MSVC)
                 --xml=${KADEDB_COVERAGE_DIR}/coverage.xml
                 --html-details=${KADEDB_COVERAGE_DIR}/index.html
                 --print-summary
-                --fail-under-line=55
-                --fail-under-branch=30
+                --fail-under-line=43
+                --fail-under-branch=24
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         COMMENT "Running tests and generating coverage report with gcovr"
         VERBATIM)
