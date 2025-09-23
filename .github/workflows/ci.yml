@@ -227,3 +227,64 @@ jobs:
           path: |
             build/coverage/coverage/coverage.xml
             build/coverage/coverage/index.html
+
+  asan_integration:
+    # Run on PRs and main to capture a stacktrace for the flaky Release-only segfault
+    if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
+    name: ASAN Integration (ubuntu-latest - RelWithDebInfo)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies (Ninja, gdb)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build gdb
+
+      - name: Configure (RelWithDebInfo + ASAN/UBSAN)
+        run: |
+          cmake -S . -B build/relasan \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DKADEDB_ENABLE_ASAN=ON \
+            -DKADEDB_ENABLE_UBSAN=ON
+
+      - name: Build (relasan)
+        run: cmake --build build/relasan --parallel
+
+      - name: Run targeted test with ASAN (ctest)
+        env:
+          ASAN_OPTIONS: abort_on_error=1:disable_coredump=0:detect_leaks=1:strict_string_checks=1:fast_unwind_on_malloc=0:malloc_context_size=50
+          UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+        shell: bash
+        run: |
+          set +e
+          ctest --test-dir build/relasan -R kadedb_combined_storage_integration_test --output-on-failure | tee asan_ctest_output.txt
+          echo "ctest exit code was $? (ignored to allow artifact upload)"
+          exit 0
+
+      - name: Run targeted test under gdb for backtrace
+        env:
+          ASAN_OPTIONS: abort_on_error=1:disable_coredump=0:detect_leaks=1:strict_string_checks=1:fast_unwind_on_malloc=0:malloc_context_size=50
+          UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+        shell: bash
+        run: |
+          set +e
+          BIN="build/relasan/bin/kadedb_combined_storage_integration_test"
+          if [ -x "$BIN" ]; then
+            gdb -q -batch \
+              -ex "set env ASAN_OPTIONS=$ASAN_OPTIONS" \
+              -ex "set env UBSAN_OPTIONS=$UBSAN_OPTIONS" \
+              -ex run -ex "bt full" --args "$BIN" > asan_gdb_bt.txt 2>&1 || true
+          else
+            echo "Binary not found: $BIN" | tee asan_gdb_bt.txt
+          fi
+          exit 0
+
+      - name: Upload ASAN artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: asan-integration-logs
+          path: |
+            asan_ctest_output.txt
+            asan_gdb_bt.txt

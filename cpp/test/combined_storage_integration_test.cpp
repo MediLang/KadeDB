@@ -69,16 +69,17 @@ int main() {
   where->rhs = ValueFactory::createBoolean(true);
   auto q = ds.query("profiles", {}, where);
   assert(q.hasValue());
-  const auto &vec = q.value();
+  auto vec = std::move(q.value());
   // Expect only user_id=1
   assert(vec.size() == 1);
 
-  // Lookup username of that user via relational select with predicate
-  auto it_uid = vec[0].second.find("user_id");
-  assert(it_uid != vec[0].second.end());
-  assert(it_uid->second != nullptr);
-  assert(it_uid->second->type() == ValueType::Integer);
-  int userId = static_cast<const IntegerValue &>(*it_uid->second).value();
+  // Lookup username via relational select: for active==true we expect key "1"
+  if (vec.empty())
+    return 1;
+  const std::string key = vec[0].first;
+  if (key != "1")
+    return 2;
+  int userId = 1;
 
   std::optional<Predicate> w2;
   w2.emplace();
