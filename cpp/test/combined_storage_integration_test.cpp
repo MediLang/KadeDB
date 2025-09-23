@@ -79,7 +79,22 @@ int main() {
   const std::string key = vec[0].first;
   if (key != "1")
     return 2;
+
+#ifdef KADEDB_FORCE_DOC_DEREF
+  // Diagnostic path (enabled in ASAN diagnostic job): intentionally access the
+  // Document returned by query to reproduce any lifetime issues under ASAN.
+  // This code is only compiled in the diagnostic job.
+  const auto &doc0_diag = vec[0].second;
+  auto it_diag = doc0_diag.find("user_id");
+  assert(it_diag != doc0_diag.end());
+  assert(it_diag->second != nullptr);
+  assert(it_diag->second->type() == ValueType::Integer);
+  int userId = static_cast<int>(
+      static_cast<const IntegerValue &>(*it_diag->second).value());
+#else
+  // Default safe path used across normal CI jobs
   int userId = 1;
+#endif
 
   std::optional<Predicate> w2;
   w2.emplace();
