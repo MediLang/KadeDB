@@ -24,6 +24,16 @@ public:
   const Value &at(size_t idx) const { return *values_.at(idx); }
   const std::vector<std::unique_ptr<Value>> &values() const { return values_; }
 
+  // Move-out accessor: safely moves the contained value out of the ResultRow,
+  // leaving the optional disengaged. Caller must ensure hasValue().
+  std::unique_ptr<Value> takeValue(size_t idx) {
+    if (idx >= values_.size())
+      throw std::runtime_error("ResultRow::takeValue(): index out of range");
+    std::unique_ptr<Value> tmp = std::move(values_.at(idx));
+    values_.at(idx) = nullptr;
+    return tmp;
+  }
+
   // Convenience: string view of a cell (uses Value::toString())
   std::string toString(size_t idx) const { return values_.at(idx)->toString(); }
 
