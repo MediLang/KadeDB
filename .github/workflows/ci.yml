@@ -259,13 +259,29 @@ jobs:
         shell: bash
         run: |
           set +e
-          ctest --test-dir build/relasan -R kadedb_combined_storage_integration_test --output-on-failure | tee asan_ctest_output.txt
+          ctest --test-dir build/relasan -R kadedb_combined_storage_integration_test --output-on-failure 2>&1 | tee asan_ctest_output.txt
           echo "ctest exit code was $? (ignored to allow artifact upload)"
+          exit 0
+
+      - name: Run test binary standalone (capture ASAN stderr)
+        env:
+          ASAN_OPTIONS: abort_on_error=1:disable_coredump=0:detect_leaks=1:strict_string_checks=1:fast_unwind_on_malloc=0:malloc_context_size=50
+          UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+        shell: bash
+        run: |
+          set +e
+          BIN="build/relasan/bin/kadedb_combined_storage_integration_test"
+          if [ -x "$BIN" ]; then
+            "$BIN" 2>&1 | tee asan_binary_output.txt || true
+          else
+            echo "Binary not found: $BIN" | tee asan_binary_output.txt
+          fi
           exit 0
 
       - name: Run targeted test under gdb for backtrace
         env:
-          ASAN_OPTIONS: abort_on_error=1:disable_coredump=0:detect_leaks=1:strict_string_checks=1:fast_unwind_on_malloc=0:malloc_context_size=50
+          # Disable LSAN under gdb to avoid ptrace incompatibility; keep ASAN/UBSAN
+          ASAN_OPTIONS: abort_on_error=1:disable_coredump=0:detect_leaks=0:strict_string_checks=1:fast_unwind_on_malloc=0:malloc_context_size=50
           UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
         shell: bash
         run: |
@@ -287,4 +303,5 @@ jobs:
           name: asan-integration-logs
           path: |
             asan_ctest_output.txt
+            asan_binary_output.txt
             asan_gdb_bt.txt
