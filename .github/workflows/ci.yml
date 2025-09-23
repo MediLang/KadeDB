@@ -263,6 +263,9 @@ jobs:
           set +e
           ctest --test-dir build/relasan -R kadedb_combined_storage_integration_test --output-on-failure 2>&1 | tee asan_ctest_output.txt
           echo "ctest exit code was $? (ignored to allow artifact upload)"
+          echo "--- BEGIN asan_ctest_output.txt ---"
+          cat asan_ctest_output.txt || true
+          echo "--- END asan_ctest_output.txt ---"
           exit 0
 
       - name: Run test binary standalone (capture ASAN stderr)
@@ -278,6 +281,9 @@ jobs:
           else
             echo "Binary not found: $BIN" | tee asan_binary_output.txt
           fi
+          echo "--- BEGIN asan_binary_output.txt ---"
+          cat asan_binary_output.txt || true
+          echo "--- END asan_binary_output.txt ---"
           exit 0
 
       - name: Run targeted test under gdb for backtrace
@@ -338,6 +344,9 @@ jobs:
           else
             echo "Binary not found: $BIN" | tee gdb_release_bt.txt
           fi
+          echo "--- BEGIN gdb_release_bt.txt ---"
+          cat gdb_release_bt.txt || true
+          echo "--- END gdb_release_bt.txt ---"
           exit 0
 
       - name: Upload GDB (RelWithDebInfo) artifact
