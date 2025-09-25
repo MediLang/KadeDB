@@ -209,3 +209,14 @@ target_link_libraries(kadedb_concurrency_test PRIVATE KadeDB::kadedb_core)
 target_compile_features(kadedb_concurrency_test PRIVATE cxx_std_17)
 
 add_test(NAME kadedb_concurrency_test COMMAND kadedb_concurrency_test)
+
+# KadeQL parser tests
+add_executable(kadedb_kadeql_test
+  kadeql_test.cpp
+)
+
+target_link_libraries(kadedb_kadeql_test PRIVATE KadeDB::kadedb_core)
+
+target_compile_features(kadedb_kadeql_test PRIVATE cxx_std_17)
+
+add_test(NAME kadedb_kadeql_test COMMAND kadedb_kadeql_test)

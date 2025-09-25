@@ -15,6 +15,9 @@ add_library(kadedb_core ${LIB_TYPE}
   src/core/schema.cpp
   src/core/serialization.cpp
   src/core/storage.cpp
+  src/core/kadeql_tokenizer.cpp
+  src/core/kadeql_ast.cpp
+  src/core/kadeql_parser.cpp
 )
 
 add_library(KadeDB::kadedb_core ALIAS kadedb_core)
@@ -91,3 +94,12 @@ add_executable(kadedb_inmemory_rel_errors_example
 target_link_libraries(kadedb_inmemory_rel_errors_example PRIVATE KadeDB::kadedb_core)
 
 target_compile_features(kadedb_inmemory_rel_errors_example PRIVATE cxx_std_17)
+
+# KadeQL example
+add_executable(kadedb_kadeql_example
+  examples/kadeql_example.cpp
+)
+
+target_link_libraries(kadedb_kadeql_example PRIVATE KadeDB::kadedb_core)
+
+target_compile_features(kadedb_kadeql_example PRIVATE cxx_std_17)

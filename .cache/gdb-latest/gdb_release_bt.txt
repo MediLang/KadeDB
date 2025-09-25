@@ -1,0 +1,72 @@
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+terminate called after throwing an instance of 'std::bad_alloc'
+  what():  std::bad_alloc
+
+Program received signal SIGABRT, Aborted.
+__pthread_kill_implementation (no_tid=0, signo=6, threadid=<optimized out>) at ./nptl/pthread_kill.c:44
+warning: 44	./nptl/pthread_kill.c: No such file or directory
+#0  __pthread_kill_implementation (no_tid=0, signo=6, threadid=<optimized out>) at ./nptl/pthread_kill.c:44
+        tid = <optimized out>
+        ret = 0
+        pd = <optimized out>
+        old_mask = {__val = {0}}
+        ret = <optimized out>
+        pd = <optimized out>
+        old_mask = <optimized out>
+        ret = <optimized out>
+        tid = <optimized out>
+        ret = <optimized out>
+        resultvar = <optimized out>
+        resultvar = <optimized out>
+        __arg3 = <optimized out>
+        __arg2 = <optimized out>
+        __arg1 = <optimized out>
+        _a3 = <optimized out>
+        _a2 = <optimized out>
+        _a1 = <optimized out>
+        __futex = <optimized out>
+        resultvar = <optimized out>
+        __arg3 = <optimized out>
+        __arg2 = <optimized out>
+        __arg1 = <optimized out>
+        _a3 = <optimized out>
+        _a2 = <optimized out>
+        _a1 = <optimized out>
+        __futex = <optimized out>
+        __private = <optimized out>
+        __oldval = <optimized out>
+#1  __pthread_kill_internal (signo=6, threadid=<optimized out>) at ./nptl/pthread_kill.c:78
+No locals.
+#2  __GI___pthread_kill (threadid=<optimized out>, signo=signo@entry=6) at ./nptl/pthread_kill.c:89
+No locals.
+#3  0x00007ffff784527e in __GI_raise (sig=sig@entry=6) at ../sysdeps/posix/raise.c:26
+        ret = <optimized out>
+#4  0x00007ffff78288ff in __GI_abort () at ./stdlib/abort.c:79
+        save_stage = 1
+        act = {__sigaction_handler = {sa_handler = 0x20, sa_sigaction = 0x20}, sa_mask = {__val = {140737346353525, 140737347863776, 140737346353525, 140737347863776, 1, 140737347863907, 140737347854384, 140737488343776, 140737346348401, 1, 140737347863776, 10, 93824992344304, 140737488344672, 140737488344368, 140737488343824}}, sa_flags = -142004493, sa_restorer = 0x7ffff7de501f}
+#5  0x00007ffff7ca5ff5 in ?? () from /lib/x86_64-linux-gnu/libstdc++.so.6
+No symbol table info available.
+#6  0x00007ffff7cbb0da in ?? () from /lib/x86_64-linux-gnu/libstdc++.so.6
+No symbol table info available.
+#7  0x00007ffff7ca5a55 in std::terminate() () from /lib/x86_64-linux-gnu/libstdc++.so.6
+No symbol table info available.
+#8  0x00007ffff7cbb391 in __cxa_throw () from /lib/x86_64-linux-gnu/libstdc++.so.6
+No symbol table info available.
+#9  0x00007ffff7ca5ac8 in ?? () from /lib/x86_64-linux-gnu/libstdc++.so.6
+No symbol table info available.
+#10 0x00007ffff7d6b85b in void std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_construct<char*>(char*, char*, std::forward_iterator_tag) () from /lib/x86_64-linux-gnu/libstdc++.so.6
+No symbol table info available.
+#11 0x0000555555556ea6 in main () at /home/runner/work/KadeDB/KadeDB/cpp/test/combined_storage_integration_test.cpp:79
+        rs = {<kadedb::RelationalStorage> = {_vptr.RelationalStorage = 0x55555555bc58 <vtable for kadedb::InMemoryRelationalStorage+16>}, tables_ = std::unordered_map with 0 elements, mtx_ = {<std::__mutex_base> = {_M_mutex = {__data = {__lock = 0, __count = 0, __owner = 0, __nusers = 0, __kind = 0, __spins = 0, __elision = 0, __list = {__prev = 0x0, __next = 0x0}}, __size = '\000' <repeats 39 times>, __align = 0}}, <No data fields>}}
+        userSchema = {static npos = 18446744073709551615, columns_ = std::vector of length 3, capacity 3 = {{name = "id", type = kadedb::ColumnType::Integer, nullable = false, unique = true, constraints = {minLength = std::optional [no contained value], maxLength = std::optional [no contained value], oneOf = std::vector of length 0, capacity 0, minValue = std::optional [no contained value], maxValue = std::optional [no contained value]}}, {name = "username", type = kadedb::ColumnType::String, nullable = false, unique = false, constraints = {minLength = std::optional [no contained value], maxLength = std::optional [no contained value], oneOf = std::vector of length 0, capacity 0, minValue = std::optional [no contained value], maxValue = std::optional [no contained value]}}, {name = "email", type = kadedb::ColumnType::String, nullable = true, unique = true, constraints = {minLength = std::optional [no contained value], maxLength = std::optional [no contained value], oneOf = std::vector of length 0, capacity 0, minValue = std::optional [no contained value], maxValue = std::optional [no contained value]}}}, indexByName_ = std::unordered_map with 3 elements = {["email"] = 2, ["username"] = 1, ["id"] = 0}, primaryKey_ = std::optional = {[contained value] = "id"}}
+        ds = {<kadedb::DocumentStorage> = {_vptr.DocumentStorage = 0x55555555bbf8 <vtable for kadedb::InMemoryDocumentStorage+16>}, data_ = std::unordered_map with 0 elements, mtx_ = {<std::__mutex_base> = {_M_mutex = {__data = {__lock = 0, __count = 0, __owner = 0, __nusers = 0, __kind = 0, __spins = 0, __elision = 0, __list = {__prev = 0x0, __next = 0x0}}, __size = '\000' <repeats 39 times>, __align = 0}}, <No data fields>}}
+        where = std::optional = {[contained value] = {kind = kadedb::DocPredicate::Kind::Comparison, field = "active", op = kadedb::DocPredicate::Op::Eq, rhs = std::unique_ptr<kadedb::Value> = {get() = 0x55555556f8d0}, children = std::vector of length 0, capacity 0}}
+        q = {status_ = {code_ = kadedb::StatusCode::NotFound, message_ = "Unknown collection"}, value_ = std::optional [no contained value]}
+        vec = std::vector of length -136, capacity 7996400938913 = {{first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = <error reading variable: Cannot create a lazy string with address 0x0, and a non-zero length.>, second = {map_ = std::unordered_map with 140737352521104 elements<error reading variable: Cannot access memory at address 0x2>}}, {first = "`\235", second = {map_ = std::unordered_map with 0 elements = {[""] = std::unique_ptr<kadedb::Value> = {get() = 0x2c}, [""] = std::unique_ptr<kadedb::Value> = {get() = 0x7ffff7cd8210 <std::__moneypunct_cache<wchar_t, false>::~__moneypunct_cache()>}, [<error: Cannot access memory at address 0x8ec8348fb894853>] = std::unique_ptr<kadedb::Value> = {get() = 0x574ff8548107f8b}<error reading variable: Cannot access memory at address 0xe5894855fa1e0ff3>...}}}, {first = <error reading variable: Cannot create a lazy string with address 0x0, and a non-zero length.>, second = {map_ = std::unordered_map with 140737352515304 elements}}, {first = "\340", <incomplete sequence \343>, second = {map_ = std::unordered_map with 2 elements = {[""] = std::unique_ptr<kadedb::Value> = {get() = 0x7ffff7d3ee50 <std::moneypunct<char, false>::do_curr_symbol() const>}, [Python Exception <class 'OverflowError'>: int too big to convert
+] = std::unique_ptr<kadedb::Value> = {get() = 0x7b8b481374078948}<error reading variable: Cannot access memory at address 0xe5894855fa1e0ff3>...}}}, {first = "", second = {map_ = std::unordered_map with 140737352514560 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = <error: Cannot access memory at address 0x1>, second = {map_ = std::unordered_map with 6 elements<error reading variable: Cannot access memory at address 0x1>}}, {first = <error: Cannot access memory at address 0x8>, second = {map_ = std::unordered_map with 1 element<error reading variable: Cannot access memory at address 0x1>}}, {first = <error: Cannot access memory at address 0x1>, second = {map_ = std::unordered_map with 24 elements<error reading variable: Cannot access memory at address 0x15>}}, {first = <error: Cannot access memory at address 0x1>, second = {map_ = std::unordered_map with 1 element<error reading variable: Cannot access memory at address 0x1>}}, {first = <error: Cannot access memory at address 0x28>, second = {map_ = std::unordered_map with 38 elements<error reading variable: Cannot access memory at address 0x23>}}, {first = <error: Cannot access memory at address 0x1>, second = {map_ = std::unordered_map with 1 element<error reading variable: Cannot access memory at address 0x1>}}, {first = <error: Cannot access memory at address 0x1>, second = {map_ = std::unordered_map with 44 elements<error reading variable: Cannot access memory at address 0x29>}}, {first = <error: Cannot access memory at address 0x13>, second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, {first = "", second = {map_ = std::unordered_map with 0 elements}}, <error reading variable vec (Cannot access memory at address 0x7ffff7e7e000)>
+        key = ""
+        userId = <optimized out>
+        w2 = std::optional [no contained value]
+        res = {status_ = {code_ = 4294956896, message_ = <error: Cannot access memory at address 0x8>}, value_ = std::optional = {[contained value] = {static npos = 18446744073709551615, columnNames_ = std::vector of length 0, capacity 0, columnTypes_ = std::vector of length 0, capacity 0, rows_ = std::vector of length 0, capacity 0, cursor_ = 0, pageSize_ = 0}}}
+        s = <optimized out>

@@ -1,0 +1,13 @@
+Internal ctest changing into directory: /home/runner/work/KadeDB/KadeDB/build/relasan
+Test project /home/runner/work/KadeDB/KadeDB/build/relasan
+    Start 19: kadedb_combined_storage_integration_test
+1/1 Test #19: kadedb_combined_storage_integration_test ...***Failed    0.14 sec
+
+
+0% tests passed, 1 tests failed out of 1
+
+Total Test time (real) =   0.18 sec
+
+The following tests FAILED:
+	 19 - kadedb_combined_storage_integration_test (Failed)
+Errors while running CTest

@@ -213,7 +213,7 @@
         "dependencies": [
           2
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -221,7 +221,7 @@
             "description": "Create a lexical analyzer that converts KadeQL query strings into tokens for the parser to process.",
             "dependencies": [],
             "details": "Implement a Tokenizer class that:\n1. Breaks input queries into tokens (keywords, identifiers, operators, literals)\n2. Handles basic SQL keywords (SELECT, FROM, WHERE, INSERT, INTO, VALUES)\n3. Recognizes operators (=, <, >, <=, >=, !=) and delimiters\n4. Supports string and numeric literals\n5. Includes position tracking for error reporting\n\nExample implementation:\n```cpp\nenum class TokenType {\n  SELECT, FROM, WHERE, INSERT, INTO, VALUES,\n  IDENTIFIER, STRING_LITERAL, NUMBER_LITERAL,\n  EQUALS, LESS_THAN, GREATER_THAN, // etc.\n  COMMA, SEMICOLON, LPAREN, RPAREN,\n  END_OF_INPUT\n};\n\nstruct Token {\n  TokenType type;\n  std::string value;\n  size_t line;\n  size_t column;\n};\n\nclass Tokenizer {\npublic:\n  explicit Tokenizer(const std::string& input);\n  Token next();\n  Token peek();\n  bool hasMore();\nprivate:\n  // Implementation details\n};\n```",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
