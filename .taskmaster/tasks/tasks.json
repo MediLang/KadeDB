@@ -230,7 +230,7 @@
             "description": "Design and implement the Abstract Syntax Tree (AST) classes to represent parsed KadeQL statements.",
             "dependencies": [],
             "details": "Create a hierarchy of classes to represent the parsed query structure:\n\n1. Base Statement class with common functionality\n2. SelectStatement class with fields for columns, table name, and WHERE conditions\n3. InsertStatement class with table name and values to insert\n4. Expression classes for WHERE clause conditions\n5. Predicate classes for comparison operations\n\nExample implementation:\n```cpp\nclass Statement {\npublic:\n  virtual ~Statement() = default;\n  virtual StatementType type() const = 0;\n};\n\nclass SelectStatement : public Statement {\npublic:\n  StatementType type() const override { return StatementType::SELECT; }\n  std::vector<std::string> columns;\n  std::string table;\n  std::unique_ptr<Expression> whereClause;\n};\n\nclass InsertStatement : public Statement {\npublic:\n  StatementType type() const override { return StatementType::INSERT; }\n  std::string table;\n  std::vector<std::string> columns;\n  std::vector<std::vector<std::unique_ptr<Expression>>> values;\n};\n```",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {

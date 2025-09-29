@@ -19,6 +19,11 @@ class IdentifierExpression;
 class LiteralExpression;
 
 /**
+ * Statement type discriminator
+ */
+enum class StatementType { SELECT, INSERT };
+
+/**
  * Base class for all AST nodes
  */
 class ASTNode {
@@ -112,6 +117,8 @@ private:
 class Statement : public ASTNode {
 public:
   virtual ~Statement() = default;
+  /** Return the concrete statement type */
+  virtual StatementType type() const = 0;
 };
 
 /**
@@ -129,6 +136,7 @@ public:
   const Expression *getWhereClause() const { return where_clause_.get(); }
 
   std::string toString() const override;
+  StatementType type() const override { return StatementType::SELECT; }
 
 private:
   std::vector<std::string> columns_;
@@ -154,6 +162,7 @@ public:
   }
 
   std::string toString() const override;
+  StatementType type() const override { return StatementType::INSERT; }
 
 private:
   std::string table_name_;
