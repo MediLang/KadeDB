@@ -12,6 +12,11 @@ std::unique_ptr<Statement> KadeQLParser::parse(const std::string &query) {
   try {
     auto statement = parseStatement();
 
+    // Allow optional trailing semicolons
+    while (match(TokenType::SEMICOLON)) {
+      // consume any extra semicolons
+    }
+
     // Ensure we've consumed all tokens
     if (!isAtEnd()) {
       error("Unexpected token after statement: " + current_token_.value);

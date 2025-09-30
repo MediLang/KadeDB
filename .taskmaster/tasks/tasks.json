@@ -242,7 +242,7 @@
               "4.2"
             ],
             "details": "Implement the SELECT statement parser that:\n\n1. Parses the SELECT keyword followed by column names or * for all columns\n2. Handles the FROM clause with table name\n3. Processes optional WHERE clauses with comparison operators\n4. Builds the appropriate SelectStatement AST node\n5. Provides clear error messages for syntax errors\n\nExample implementation:\n```cpp\nstd::unique_ptr<SelectStatement> parseSelectStatement(Tokenizer& tokenizer) {\n  // Consume SELECT keyword\n  tokenizer.consume(TokenType::SELECT);\n  \n  auto stmt = std::make_unique<SelectStatement>();\n  \n  // Parse column list\n  if (tokenizer.peek().type == TokenType::ASTERISK) {\n    tokenizer.consume(TokenType::ASTERISK);\n    stmt->columns.push_back(\"*\");\n  } else {\n    // Parse comma-separated column names\n    do {\n      Token columnToken = tokenizer.consume(TokenType::IDENTIFIER);\n      stmt->columns.push_back(columnToken.value);\n      \n      if (tokenizer.peek().type != TokenType::COMMA) {\n        break;\n      }\n      tokenizer.consume(TokenType::COMMA);\n    } while (true);\n  }\n  \n  // Parse FROM clause\n  tokenizer.consume(TokenType::FROM);\n  Token tableToken = tokenizer.consume(TokenType::IDENTIFIER);\n  stmt->table = tableToken.value;\n  \n  // Parse optional WHERE clause\n  if (tokenizer.peek().type == TokenType::WHERE) {\n    tokenizer.consume(TokenType::WHERE);\n    stmt->whereClause = parseExpression(tokenizer);\n  }\n  \n  return stmt;\n}\n```",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {

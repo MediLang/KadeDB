@@ -73,6 +73,20 @@ void testSelectParser() {
     std::cout << "  WHERE SELECT: " << select3->toString() << std::endl;
   }
 
+  // Test SELECT with trailing semicolon
+  {
+    KadeQLParser parser;
+    auto stmt4 = parser.parse("SELECT * FROM users;");
+    auto select4 = dynamic_cast<SelectStatement *>(stmt4.get());
+    assert(select4 != nullptr);
+    assert(select4->getColumns().size() == 1);
+    assert(select4->getColumns()[0] == "*");
+    assert(select4->getTableName() == "users");
+    assert(select4->getWhereClause() == nullptr);
+    std::cout << "  Trailing semicolon SELECT: " << select4->toString()
+              << std::endl;
+  }
+
   std::cout << "SELECT parser tests passed!" << std::endl;
 }
 
