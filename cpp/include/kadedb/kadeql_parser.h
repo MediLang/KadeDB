@@ -60,6 +60,9 @@ private:
 
   // Helper methods
   std::vector<std::string> parseColumnList();
+  // Parse a comma-separated list of identifiers (no '*') used for INSERT
+  // columns
+  std::vector<std::string> parseIdentifierList();
   std::vector<std::vector<std::unique_ptr<Expression>>> parseValuesList();
   std::vector<std::unique_ptr<Expression>> parseExpressionList();
 

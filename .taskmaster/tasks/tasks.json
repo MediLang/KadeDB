@@ -213,7 +213,7 @@
         "dependencies": [
           2
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -254,7 +254,7 @@
               "4.2"
             ],
             "details": "Implement the INSERT statement parser and error handling that:\n\n1. Parses the INSERT INTO keyword followed by table name\n2. Handles optional column list in parentheses\n3. Processes VALUES keyword and the values to insert\n4. Builds the appropriate InsertStatement AST node\n5. Implements a comprehensive error handling system with:\n   - Descriptive error messages including position information\n   - Recovery mechanisms where appropriate\n   - Validation of semantic constraints\n\nExample implementation:\n```cpp\nstd::unique_ptr<InsertStatement> parseInsertStatement(Tokenizer& tokenizer) {\n  // Consume INSERT INTO keywords\n  tokenizer.consume(TokenType::INSERT);\n  tokenizer.consume(TokenType::INTO);\n  \n  auto stmt = std::make_unique<InsertStatement>();\n  \n  // Parse table name\n  Token tableToken = tokenizer.consume(TokenType::IDENTIFIER);\n  stmt->table = tableToken.value;\n  \n  // Parse optional column list\n  if (tokenizer.peek().type == TokenType::LPAREN) {\n    tokenizer.consume(TokenType::LPAREN);\n    \n    do {\n      Token columnToken = tokenizer.consume(TokenType::IDENTIFIER);\n      stmt->columns.push_back(columnToken.value);\n      \n      if (tokenizer.peek().type != TokenType::COMMA) {\n        break;\n      }\n      tokenizer.consume(TokenType::COMMA);\n    } while (true);\n    \n    tokenizer.consume(TokenType::RPAREN);\n  }\n  \n  // Parse VALUES keyword and values\n  tokenizer.consume(TokenType::VALUES);\n  \n  do {\n    tokenizer.consume(TokenType::LPAREN);\n    std::vector<std::unique_ptr<Expression>> rowValues;\n    \n    do {\n      rowValues.push_back(parseExpression(tokenizer));\n      \n      if (tokenizer.peek().type != TokenType::COMMA) {\n        break;\n      }\n      tokenizer.consume(TokenType::COMMA);\n    } while (true);\n    \n    tokenizer.consume(TokenType::RPAREN);\n    stmt->values.push_back(std::move(rowValues));\n    \n    if (tokenizer.peek().type != TokenType::COMMA) {\n      break;\n    }\n    tokenizer.consume(TokenType::COMMA);\n  } while (true);\n  \n  return stmt;\n}\n\nclass ParseError : public std::runtime_error {\npublic:\n  ParseError(const std::string& message, size_t line, size_t column)\n    : std::runtime_error(formatMessage(message, line, column)),\n      line_(line), column_(column) {}\n  \n  size_t line() const { return line_; }\n  size_t column() const { return column_; }\n  \nprivate:\n  size_t line_;\n  size_t column_;\n  \n  static std::string formatMessage(const std::string& message, size_t line, size_t column) {\n    return \"Parse error at line \" + std::to_string(line) + \n           \", column \" + std::to_string(column) + \": \" + message;\n  }\n};\n```",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           }
         ]

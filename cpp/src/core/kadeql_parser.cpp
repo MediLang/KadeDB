@@ -76,7 +76,8 @@ std::unique_ptr<InsertStatement> KadeQLParser::parseInsertStatement() {
   // Optional column list
   std::vector<std::string> columns;
   if (match(TokenType::LPAREN)) {
-    columns = parseColumnList();
+    // For INSERT, only identifiers are allowed (no '*')
+    columns = parseIdentifierList();
     consume(TokenType::RPAREN, "Expected ')' after column list");
   }
 
@@ -85,6 +86,26 @@ std::unique_ptr<InsertStatement> KadeQLParser::parseInsertStatement() {
 
   // Parse values list
   auto values = parseValuesList();
+
+  // Semantic validations
+  // 1) Ensure all value tuples have the same arity
+  if (!values.empty()) {
+    const size_t arity = values.front().size();
+    for (size_t i = 1; i < values.size(); ++i) {
+      if (values[i].size() != arity) {
+        error("Inconsistent VALUES tuple sizes: expected " +
+              std::to_string(arity) + ", got " +
+              std::to_string(values[i].size()));
+      }
+    }
+
+    // 2) If explicit columns provided, ensure arity matches
+    if (!columns.empty() && arity != columns.size()) {
+      error("VALUES count (" + std::to_string(arity) +
+            ") does not match column count (" + std::to_string(columns.size()) +
+            ")");
+    }
+  }
 
   return std::make_unique<InsertStatement>(
       std::move(table_name), std::move(columns), std::move(values));
@@ -214,6 +235,23 @@ KadeQLParser::parseValuesList() {
   }
 
   return values;
+}
+
+std::vector<std::string> KadeQLParser::parseIdentifierList() {
+  std::vector<std::string> identifiers;
+
+  // Parse first identifier
+  Token id = consume(TokenType::IDENTIFIER, "Expected identifier");
+  identifiers.push_back(id.value);
+
+  // Parse additional identifiers
+  while (match(TokenType::COMMA)) {
+    Token next =
+        consume(TokenType::IDENTIFIER, "Expected identifier after ','");
+    identifiers.push_back(next.value);
+  }
+
+  return identifiers;
 }
 
 std::vector<std::unique_ptr<Expression>> KadeQLParser::parseExpressionList() {
