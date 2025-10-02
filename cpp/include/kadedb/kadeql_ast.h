@@ -13,7 +13,10 @@ namespace kadeql {
 class Statement;
 class SelectStatement;
 class InsertStatement;
+class UpdateStatement;
+class DeleteStatement;
 class Expression;
+class UnaryExpression;
 class BinaryExpression;
 class IdentifierExpression;
 class LiteralExpression;
@@ -21,7 +24,7 @@ class LiteralExpression;
 /**
  * Statement type discriminator
  */
-enum class StatementType { SELECT, INSERT };
+enum class StatementType { SELECT, INSERT, UPDATE, DELETE };
 
 /**
  * Base class for all AST nodes
@@ -38,6 +41,26 @@ public:
 class Expression : public ASTNode {
 public:
   virtual ~Expression() = default;
+};
+
+/**
+ * Unary expression for logical operations (currently NOT)
+ */
+class UnaryExpression : public Expression {
+public:
+  enum class Operator { NOT };
+
+  explicit UnaryExpression(Operator op, std::unique_ptr<Expression> operand)
+      : operator_(op), operand_(std::move(operand)) {}
+
+  Operator getOperator() const { return operator_; }
+  const Expression *getOperand() const { return operand_.get(); }
+
+  std::string toString() const override;
+
+private:
+  Operator operator_;
+  std::unique_ptr<Expression> operand_;
 };
 
 /**
@@ -76,10 +99,6 @@ public:
 private:
   std::string name_;
 };
-
-/**
- * Binary expression for comparisons and logical operations
- */
 class BinaryExpression : public Expression {
 public:
   enum class Operator {
@@ -90,7 +109,11 @@ public:
     LESS_EQUAL,    // <=
     GREATER_EQUAL, // >=
     AND,           // AND
-    OR             // OR
+    OR,            // OR
+    ADD,           // +
+    SUB,           // -
+    MUL,           // *
+    DIV            // /
   };
 
   BinaryExpression(std::unique_ptr<Expression> left, Operator op,
@@ -168,6 +191,53 @@ private:
   std::string table_name_;
   std::vector<std::string> columns_;
   std::vector<std::vector<std::unique_ptr<Expression>>> values_;
+};
+
+/**
+ * UPDATE statement AST node
+ */
+class UpdateStatement : public Statement {
+public:
+  using Assignment = std::pair<std::string, std::unique_ptr<Expression>>;
+
+  UpdateStatement(std::string table_name, std::vector<Assignment> assignments,
+                  std::unique_ptr<Expression> where_clause = nullptr)
+      : table_name_(std::move(table_name)),
+        assignments_(std::move(assignments)),
+        where_clause_(std::move(where_clause)) {}
+
+  const std::string &getTableName() const { return table_name_; }
+  const std::vector<Assignment> &getAssignments() const { return assignments_; }
+  const Expression *getWhereClause() const { return where_clause_.get(); }
+
+  std::string toString() const override;
+  StatementType type() const override { return StatementType::UPDATE; }
+
+private:
+  std::string table_name_;
+  std::vector<Assignment> assignments_;
+  std::unique_ptr<Expression> where_clause_;
+};
+
+/**
+ * DELETE statement AST node
+ */
+class DeleteStatement : public Statement {
+public:
+  DeleteStatement(std::string table_name,
+                  std::unique_ptr<Expression> where_clause = nullptr)
+      : table_name_(std::move(table_name)),
+        where_clause_(std::move(where_clause)) {}
+
+  const std::string &getTableName() const { return table_name_; }
+  const Expression *getWhereClause() const { return where_clause_.get(); }
+
+  std::string toString() const override;
+  StatementType type() const override { return StatementType::DELETE; }
+
+private:
+  std::string table_name_;
+  std::unique_ptr<Expression> where_clause_;
 };
 
 /**

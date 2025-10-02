@@ -220,3 +220,47 @@ target_link_libraries(kadedb_kadeql_test PRIVATE KadeDB::kadedb_core)
 target_compile_features(kadedb_kadeql_test PRIVATE cxx_std_17)
 
 add_test(NAME kadedb_kadeql_test COMMAND kadedb_kadeql_test)
+
+# KadeQL executor integration test (parser + executor + storage)
+add_executable(kadedb_kadeql_executor_integration_test
+  kadeql_executor_integration_test.cpp
+)
+
+target_link_libraries(kadedb_kadeql_executor_integration_test PRIVATE KadeDB::kadedb_core)
+
+target_compile_features(kadedb_kadeql_executor_integration_test PRIVATE cxx_std_17)
+
+add_test(NAME kadedb_kadeql_executor_integration_test COMMAND kadedb_kadeql_executor_integration_test)
+
+# KadeQL UPDATE/DELETE executor integration test
+add_executable(kadedb_kadeql_update_delete_integration_test
+  kadeql_update_delete_integration_test.cpp
+)
+
+target_link_libraries(kadedb_kadeql_update_delete_integration_test PRIVATE KadeDB::kadedb_core)
+
+target_compile_features(kadedb_kadeql_update_delete_integration_test PRIVATE cxx_std_17)
+
+add_test(NAME kadedb_kadeql_update_delete_integration_test COMMAND kadedb_kadeql_update_delete_integration_test)
+
+# KadeQL NOT predicates tests
+add_executable(kadedb_kadeql_not_predicates_test
+  kadeql_not_predicates_test.cpp
+)
+
+target_link_libraries(kadedb_kadeql_not_predicates_test PRIVATE KadeDB::kadedb_core)
+
+target_compile_features(kadedb_kadeql_not_predicates_test PRIVATE cxx_std_17)
+
+add_test(NAME kadedb_kadeql_not_predicates_test COMMAND kadedb_kadeql_not_predicates_test)
+
+# KadeQL computed UPDATE tests
+add_executable(kadedb_kadeql_computed_update_test
+  kadeql_computed_update_test.cpp
+)
+
+target_link_libraries(kadedb_kadeql_computed_update_test PRIVATE KadeDB::kadedb_core)
+
+target_compile_features(kadedb_kadeql_computed_update_test PRIVATE cxx_std_17)
+
+add_test(NAME kadedb_kadeql_computed_update_test COMMAND kadedb_kadeql_computed_update_test)

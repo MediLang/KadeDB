@@ -18,6 +18,10 @@ enum class TokenType {
   INSERT,
   INTO,
   VALUES,
+  UPDATE,
+  DELETE_,
+  SET,
+  NOT,
 
   // Identifiers and literals
   IDENTIFIER,
@@ -33,6 +37,9 @@ enum class TokenType {
   NOT_EQUAL,     // !=
   AND,           // AND
   OR,            // OR
+  PLUS,          // +
+  MINUS,         // -
+  SLASH,         // /
 
   // Delimiters
   COMMA,     // ,

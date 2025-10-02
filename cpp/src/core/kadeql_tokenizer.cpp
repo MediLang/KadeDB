@@ -10,6 +10,8 @@ const std::unordered_map<std::string, TokenType> Tokenizer::keywords_ = {
     {"SELECT", TokenType::SELECT}, {"FROM", TokenType::FROM},
     {"WHERE", TokenType::WHERE},   {"INSERT", TokenType::INSERT},
     {"INTO", TokenType::INTO},     {"VALUES", TokenType::VALUES},
+    {"UPDATE", TokenType::UPDATE}, {"DELETE", TokenType::DELETE_},
+    {"SET", TokenType::SET},       {"NOT", TokenType::NOT},
     {"AND", TokenType::AND},       {"OR", TokenType::OR}};
 
 Tokenizer::Tokenizer(const std::string &input)
@@ -86,6 +88,15 @@ Token Tokenizer::next() {
   case '*':
     advance();
     return makeToken(TokenType::ASTERISK, '*');
+  case '+':
+    advance();
+    return makeToken(TokenType::PLUS, '+');
+  case '-':
+    advance();
+    return makeToken(TokenType::MINUS, '-');
+  case '/':
+    advance();
+    return makeToken(TokenType::SLASH, '/');
   default:
     advance();
     return makeToken(TokenType::UNKNOWN, c);
@@ -121,6 +132,14 @@ void Tokenizer::reset() {
 
 std::string Tokenizer::tokenTypeToString(TokenType type) {
   switch (type) {
+  case TokenType::UPDATE:
+    return "UPDATE";
+  case TokenType::DELETE_:
+    return "DELETE";
+  case TokenType::SET:
+    return "SET";
+  case TokenType::NOT:
+    return "NOT";
   case TokenType::SELECT:
     return "SELECT";
   case TokenType::FROM:
@@ -155,6 +174,12 @@ std::string Tokenizer::tokenTypeToString(TokenType type) {
     return "AND";
   case TokenType::OR:
     return "OR";
+  case TokenType::PLUS:
+    return "PLUS";
+  case TokenType::MINUS:
+    return "MINUS";
+  case TokenType::SLASH:
+    return "SLASH";
   case TokenType::COMMA:
     return "COMMA";
   case TokenType::SEMICOLON:

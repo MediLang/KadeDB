@@ -36,8 +36,13 @@ std::unique_ptr<Statement> KadeQLParser::parseStatement() {
     return parseSelectStatement();
   } else if (match(TokenType::INSERT)) {
     return parseInsertStatement();
+  } else if (match(TokenType::UPDATE)) {
+    return parseUpdateStatement();
+  } else if (match(TokenType::DELETE_)) {
+    return parseDeleteStatement();
   } else {
-    error("Expected SELECT or INSERT statement, got: " + current_token_.value);
+    error("Expected SELECT, INSERT, UPDATE or DELETE statement, got: " +
+          current_token_.value);
     return nullptr; // Never reached
   }
 }
@@ -128,10 +133,10 @@ std::unique_ptr<Expression> KadeQLParser::parseLogicalOr() {
 }
 
 std::unique_ptr<Expression> KadeQLParser::parseLogicalAnd() {
-  auto expr = parseComparison();
+  auto expr = parseNot();
 
   while (match(TokenType::AND)) {
-    auto right = parseComparison();
+    auto right = parseNot();
     expr = std::make_unique<BinaryExpression>(
         std::move(expr), BinaryExpression::Operator::AND, std::move(right));
   }
@@ -140,18 +145,120 @@ std::unique_ptr<Expression> KadeQLParser::parseLogicalAnd() {
 }
 
 std::unique_ptr<Expression> KadeQLParser::parseComparison() {
-  auto expr = parsePrimary();
+  auto expr = parseAdditive();
 
   while (isComparisonOperator(current_token_.type)) {
     TokenType op_token = current_token_.type;
     advance();
-    auto right = parsePrimary();
+    auto right = parseAdditive();
     auto op = tokenToBinaryOperator(op_token);
     expr = std::make_unique<BinaryExpression>(std::move(expr), op,
                                               std::move(right));
   }
 
   return expr;
+}
+
+std::unique_ptr<Expression> KadeQLParser::parseNot() {
+  if (match(TokenType::NOT)) {
+    auto operand = parseNot();
+    return std::make_unique<UnaryExpression>(UnaryExpression::Operator::NOT,
+                                             std::move(operand));
+  }
+  return parseComparison();
+}
+
+std::unique_ptr<Expression> KadeQLParser::parseAdditive() {
+  auto expr = parseMultiplicative();
+  while (check(TokenType::PLUS) || check(TokenType::MINUS)) {
+    TokenType opTok = current_token_.type;
+    advance();
+    auto rhs = parseMultiplicative();
+    BinaryExpression::Operator op = (opTok == TokenType::PLUS)
+                                        ? BinaryExpression::Operator::ADD
+                                        : BinaryExpression::Operator::SUB;
+    expr =
+        std::make_unique<BinaryExpression>(std::move(expr), op, std::move(rhs));
+  }
+  return expr;
+}
+
+std::unique_ptr<Expression> KadeQLParser::parseMultiplicative() {
+  auto expr = parseUnarySign();
+  while (check(TokenType::ASTERISK) || check(TokenType::SLASH)) {
+    TokenType opTok = current_token_.type;
+    advance();
+    auto rhs = parseUnarySign();
+    BinaryExpression::Operator op = (opTok == TokenType::ASTERISK)
+                                        ? BinaryExpression::Operator::MUL
+                                        : BinaryExpression::Operator::DIV;
+    expr =
+        std::make_unique<BinaryExpression>(std::move(expr), op, std::move(rhs));
+  }
+  return expr;
+}
+
+std::unique_ptr<Expression> KadeQLParser::parseUnarySign() {
+  if (match(TokenType::MINUS)) {
+    // Unary minus: parse another unary and translate to 0 - expr
+    auto operand = parseUnarySign();
+    auto zero = std::make_unique<LiteralExpression>(int64_t(0));
+    return std::make_unique<BinaryExpression>(
+        std::move(zero), BinaryExpression::Operator::SUB, std::move(operand));
+  }
+  if (match(TokenType::PLUS)) {
+    // Unary plus: no-op
+    return parseUnarySign();
+  }
+  return parsePrimary();
+}
+
+std::unique_ptr<UpdateStatement> KadeQLParser::parseUpdateStatement() {
+  // UPDATE <table>
+  Token table_token =
+      consume(TokenType::IDENTIFIER, "Expected table name after UPDATE");
+  std::string table_name = table_token.value;
+
+  // SET
+  consume(TokenType::SET, "Expected SET in UPDATE statement");
+
+  // Parse assignments: col = expr (, col = expr)*
+  std::vector<UpdateStatement::Assignment> assigns;
+  while (true) {
+    Token colTok =
+        consume(TokenType::IDENTIFIER, "Expected column name in SET");
+    consume(TokenType::EQUALS, "Expected '=' in assignment");
+    auto expr = parseExpression();
+    assigns.emplace_back(colTok.value, std::move(expr));
+    if (!match(TokenType::COMMA))
+      break;
+  }
+
+  // Optional WHERE
+  std::unique_ptr<Expression> where_clause = nullptr;
+  if (match(TokenType::WHERE)) {
+    where_clause = parseExpression();
+  }
+
+  return std::make_unique<UpdateStatement>(
+      std::move(table_name), std::move(assigns), std::move(where_clause));
+}
+
+std::unique_ptr<DeleteStatement> KadeQLParser::parseDeleteStatement() {
+  // DELETE FROM <table>
+  consume(TokenType::FROM, "Expected FROM after DELETE");
+  Token table_token =
+      consume(TokenType::IDENTIFIER, "Expected table name after FROM");
+  std::string table_name = table_token.value;
+
+  // Optional WHERE
+  std::unique_ptr<Expression> where_clause = nullptr;
+  if (match(TokenType::WHERE)) {
+    where_clause = parseExpression();
+  }
+
+  return std::make_unique<DeleteStatement>(std::move(table_name),
+                                           std::move(where_clause));
 }
 
 std::unique_ptr<Expression> KadeQLParser::parsePrimary() {

@@ -32,6 +32,50 @@ static bool evalPredicateComparison(const TableSchema &schema, const Row &row,
   return false;
 }
 
+// Forward declaration for evalPredicate used earlier in this file
+static bool evalPredicate(const TableSchema &schema, const Row &row,
+                          const Predicate &pred);
+
+Result<size_t> InMemoryRelationalStorage::updateRowsWith(
+    const std::string &table, const RowUpdater &updater,
+    const std::optional<Predicate> &where) {
+  std::lock_guard<std::mutex> lk(mtx_);
+  auto it = tables_.find(table);
+  if (it == tables_.end())
+    return Result<size_t>::err(Status::NotFound("Unknown table: " + table));
+
+  auto &tableData = it->second;
+  const auto &schema = tableData.schema;
+
+  // Work on a copy for atomicity
+  auto newRows = tableData.rows; // deep rows
+
+  size_t updated = 0;
+  for (auto &r : newRows) {
+    if (where && !evalPredicate(schema, r, *where))
+      continue;
+    // Let the updater mutate the row
+    Status st = updater(r, schema);
+    if (!st.ok())
+      return Result<size_t>::err(st);
+    // Validate the updated row against schema
+    if (auto err = SchemaValidator::validateRow(schema, r); !err.empty()) {
+      return Result<size_t>::err(Status::InvalidArgument(err));
+    }
+    ++updated;
+  }
+
+  // Enforce uniqueness constraints after updates
+  if (auto err = SchemaValidator::validateUnique(schema, newRows);
+      !err.empty()) {
+    return Result<size_t>::err(Status::FailedPrecondition(err));
+  }
+
+  // Commit
+  tableData.rows.swap(newRows);
+  return Result<size_t>::ok(updated);
+}
+
 // Utility: evaluate predicate tree (supports And/Or/Not and Comparison)
 static bool evalPredicate(const TableSchema &schema, const Row &row,
                           const Predicate &pred) {
@@ -463,14 +507,14 @@ InMemoryRelationalStorage::deleteRows(const std::string &table,
   return Result<size_t>::ok(removed);
 }
 
-Status InMemoryRelationalStorage::updateRows(
+Result<size_t> InMemoryRelationalStorage::updateRows(
     const std::string &table,
-    const std::unordered_map<std::string, std::unique_ptr<Value>> &assignments,
+    const std::unordered_map<std::string, AssignmentValue> &assignments,
     const std::optional<Predicate> &where) {
   std::lock_guard<std::mutex> lk(mtx_);
   auto it = tables_.find(table);
   if (it == tables_.end())
-    return Status::NotFound("Unknown table: " + table);
+    return Result<size_t>::err(Status::NotFound("Unknown table: " + table));
 
   auto &tableData = it->second;
   const auto &schema = tableData.schema;
@@ -480,12 +524,14 @@ Status InMemoryRelationalStorage::updateRows(
     const std::string &colName = kv.first;
     size_t idx = schema.findColumn(colName);
     if (idx == TableSchema::npos)
-      return Status::InvalidArgument("Unknown assignment column: " + colName);
+      return Result<size_t>::err(
+          Status::InvalidArgument("Unknown assignment column: " + colName));
   }
 
   // Work on a copy for atomicity
   auto newRows = tableData.rows; // deep rows
 
+  size_t updated = 0;
   for (auto &r : newRows) {
     if (where && !evalPredicate(schema, r, *where))
       continue;
@@ -493,25 +539,56 @@ Status InMemoryRelationalStorage::updateRows(
     for (const auto &kv : assignments) {
       const std::string &colName = kv.first;
       size_t idx = schema.findColumn(colName);
-      // idx exists due to earlier validation
-      // Clone the value for deep set
-      std::unique_ptr<Value> v = kv.second ? kv.second->clone() : nullptr;
+      const AssignmentValue &av = kv.second;
+      std::unique_ptr<Value> v;
+      if (av.kind == AssignmentValue::Kind::Constant) {
+        v = av.constant ? av.constant->clone() : nullptr;
+      } else {
+        // ColumnRef: fetch from current row
+        size_t srcIdx = schema.findColumn(av.column_ref);
+        if (srcIdx == TableSchema::npos) {
+          return Result<size_t>::err(Status::InvalidArgument(
+              "Unknown column in assignment reference: " + av.column_ref));
+        }
+        const auto &src = r.values()[srcIdx];
+        v = src ? src->clone() : nullptr;
+      }
       r.set(idx, std::move(v));
     }
     // Validate the updated row against schema
     if (auto err = SchemaValidator::validateRow(schema, r); !err.empty()) {
-      return Status::InvalidArgument(err);
+      return Result<size_t>::err(Status::InvalidArgument(err));
     }
+    ++updated;
   }
 
   // Enforce uniqueness constraints after updates
   if (auto err = SchemaValidator::validateUnique(schema, newRows);
       !err.empty()) {
-    return Status::FailedPrecondition(err);
+    return Result<size_t>::err(Status::FailedPrecondition(err));
   }
 
   // Commit
   tableData.rows.swap(newRows);
+  return Result<size_t>::ok(updated);
+}
+
+Status InMemoryRelationalStorage::updateRows(
+    const std::string &table,
+    const std::unordered_map<std::string, std::unique_ptr<Value>> &assignments,
+    const std::optional<Predicate> &where) {
+  // Adapt legacy API to new implementation by wrapping constants
+  std::unordered_map<std::string, AssignmentValue> wrapped;
+  wrapped.reserve(assignments.size());
+  for (const auto &kv : assignments) {
+    AssignmentValue av;
+    av.kind = AssignmentValue::Kind::Constant;
+    av.constant = kv.second ? kv.second->clone() : nullptr;
+    wrapped.emplace(kv.first, std::move(av));
+  }
+  auto res = updateRows(table, wrapped, where);
+  if (!res.hasValue())
+    return res.status();
   return Status::OK();
 }
 

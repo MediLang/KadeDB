@@ -59,6 +59,17 @@ struct Predicate {
 };
 
 /**
+ * Assignment value for UPDATE operations: either a constant Value or a
+ * reference to another column's current value (identifier-based assignment).
+ */
+struct AssignmentValue {
+  enum class Kind { Constant, ColumnRef };
+  Kind kind = Kind::Constant;
+  std::unique_ptr<Value> constant; // used when kind==Constant
+  std::string column_ref;          // used when kind==ColumnRef
+};
+
+/**
  * A simple predicate for Document queries.
  *
  * Mirrors `Predicate` but targets a document field name instead of a table
@@ -100,6 +111,8 @@ struct DocPredicate {
 class RelationalStorage {
 public:
   virtual ~RelationalStorage() = default;
+
+  using RowUpdater = std::function<Status(Row &row, const TableSchema &schema)>;
 
   /**
    * Create a table with a name and schema.
@@ -161,14 +174,22 @@ public:
   /**
    * Update rows by assigning new values to specified columns, for rows matching
    * an optional predicate.
-   * @param table Table name
-   * @param assignments Map column -> Value (cloned by implementation)
-   * @param where Optional Predicate; when not provided, updates all rows
-   * @return Status::NotFound if table missing; Status::InvalidArgument for
-   *         unknown columns or type/constraint violations;
-   * Status::FailedPrecondition for post-update uniqueness violations;
-   * Status::OK on success
+   * - assignments: column -> AssignmentValue (constant or column reference)
+   * @return Result<size_t>: count of rows updated on success; error Status
+   * otherwise
    */
+  virtual Result<size_t> updateRows(
+      const std::string &table,
+      const std::unordered_map<std::string, AssignmentValue> &assignments,
+      const std::optional<Predicate> &where = std::nullopt) = 0;
+
+  // Higher-level per-row update hook: applies updater to each matching row.
+  virtual Result<size_t>
+  updateRowsWith(const std::string &table, const RowUpdater &updater,
+                 const std::optional<Predicate> &where = std::nullopt) = 0;
+
+  // Legacy API (backward compatibility for existing tests/examples)
+  // Updates with constant values only; returns Status.
   virtual Status
   updateRows(const std::string &table,
              const std::unordered_map<std::string, std::unique_ptr<Value>>
@@ -271,6 +292,13 @@ public:
   Status dropTable(const std::string &table) override;
   Result<size_t> deleteRows(const std::string &table,
                             const std::optional<Predicate> &where) override;
+  Result<size_t> updateRows(
+      const std::string &table,
+      const std::unordered_map<std::string, AssignmentValue> &assignments,
+      const std::optional<Predicate> &where) override;
+  Result<size_t> updateRowsWith(const std::string &table,
+                                const RowUpdater &updater,
+                                const std::optional<Predicate> &where) override;
   Status
   updateRows(const std::string &table,
              const std::unordered_map<std::string, std::unique_ptr<Value>>

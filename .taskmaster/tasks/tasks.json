@@ -270,7 +270,7 @@
           3,
           4
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -278,7 +278,7 @@
             "description": "Create the QueryExecutor class with the core execution framework that routes statements to appropriate handlers.",
             "dependencies": [],
             "details": "Implement the QueryExecutor class with constructor, execute() method, and the basic routing logic for different statement types. Include proper error handling and result type definitions. Set up the class structure with private methods for different statement types. Ensure the interface is clean and extensible for future statement types.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {

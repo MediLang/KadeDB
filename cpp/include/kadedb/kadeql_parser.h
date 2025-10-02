@@ -50,12 +50,18 @@ private:
   std::unique_ptr<Statement> parseStatement();
   std::unique_ptr<SelectStatement> parseSelectStatement();
   std::unique_ptr<InsertStatement> parseInsertStatement();
+  std::unique_ptr<UpdateStatement> parseUpdateStatement();
+  std::unique_ptr<DeleteStatement> parseDeleteStatement();
 
   // Expression parsing (recursive descent)
   std::unique_ptr<Expression> parseExpression();
   std::unique_ptr<Expression> parseLogicalOr();
   std::unique_ptr<Expression> parseLogicalAnd();
+  std::unique_ptr<Expression> parseNot();
   std::unique_ptr<Expression> parseComparison();
+  std::unique_ptr<Expression> parseAdditive();
+  std::unique_ptr<Expression> parseMultiplicative();
+  std::unique_ptr<Expression> parseUnarySign();
   std::unique_ptr<Expression> parsePrimary();
 
   // Helper methods

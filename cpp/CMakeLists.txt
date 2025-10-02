@@ -18,6 +18,7 @@ add_library(kadedb_core ${LIB_TYPE}
   src/core/kadeql_tokenizer.cpp
   src/core/kadeql_ast.cpp
   src/core/kadeql_parser.cpp
+  src/core/query_executor.cpp
 )
 
 add_library(KadeDB::kadedb_core ALIAS kadedb_core)
