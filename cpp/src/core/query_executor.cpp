@@ -42,9 +42,17 @@ static Predicate::Op toPredOp(BinaryExpression::Operator op) {
     return Predicate::Op::Ge;
   case BO::AND:
   case BO::OR:
-    // handled at higher level
+  case BO::ADD:
+  case BO::SUB:
+  case BO::MUL:
+  case BO::DIV:
+    // Unsupported for storage comparison op mapping; should be filtered
+    // earlier. Fall through to default error.
     break;
   }
+  // Default: unreachable if callers validate operators before calling.
+  // Choose a safe default and avoid warnings; comparisons are the only valid
+  // inputs.
   return Predicate::Op::Eq;
 }
 
@@ -112,9 +120,10 @@ QueryExecutor::buildPredicate(const Expression *expr) const {
         dynamic_cast<const IdentifierExpression *>(L);
     const LiteralExpression *lit = dynamic_cast<const LiteralExpression *>(R);
 
+    bool reversed = false;
     if (!id || !lit) {
       // Try reversed order: literal op identifier (rewrite to identifier op
-      // literal)
+      // literal) and invert the operator accordingly.
       id = dynamic_cast<const IdentifierExpression *>(R);
       lit = dynamic_cast<const LiteralExpression *>(L);
       if (!id || !lit) {
@@ -122,11 +131,39 @@ QueryExecutor::buildPredicate(const Expression *expr) const {
             Status::InvalidArgument("Unsupported WHERE predicate: expected "
                                     "identifier compared to literal"));
       }
+      reversed = true;
     }
 
     Predicate p;
     p.kind = Predicate::Kind::Comparison;
     p.column = id->getName();
+    // If operands were reversed, invert the comparison operator
+    using BO = BinaryExpression::Operator;
+    if (reversed) {
+      switch (op) {
+      case BO::LESS_THAN:
+        op = BO::GREATER_THAN;
+        break;
+      case BO::LESS_EQUAL:
+        op = BO::GREATER_EQUAL;
+        break;
+      case BO::GREATER_THAN:
+        op = BO::LESS_THAN;
+        break;
+      case BO::GREATER_EQUAL:
+        op = BO::LESS_EQUAL;
+        break;
+      case BO::EQUALS:
+      case BO::NOT_EQUALS:
+      case BO::AND:
+      case BO::OR:
+      case BO::ADD:
+      case BO::SUB:
+      case BO::MUL:
+      case BO::DIV:
+        break; // no change or not expected here
+      }
+    }
     p.op = toPredOp(op);
     p.rhs = literalToValue(lit->getValue());
     std::optional<Predicate> out;

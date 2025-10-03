@@ -289,7 +289,7 @@
               "5.1"
             ],
             "details": "Implement the executeSelect() method that translates a SelectStatement into storage API calls. Handle column projection, table identification, and WHERE clause translation. Create a ResultSet structure to hold query results. Implement proper error handling for cases like non-existent tables or columns. Test with various SELECT statement patterns including simple selects and those with WHERE clauses.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {

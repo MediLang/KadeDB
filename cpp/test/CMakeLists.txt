@@ -264,3 +264,14 @@ target_link_libraries(kadedb_kadeql_computed_update_test PRIVATE KadeDB::kadedb_
 target_compile_features(kadedb_kadeql_computed_update_test PRIVATE cxx_std_17)
 
 add_test(NAME kadedb_kadeql_computed_update_test COMMAND kadedb_kadeql_computed_update_test)
+
+# KadeQL mixed AND/OR, projection error, and reversed literal/identifier test
+add_executable(kadedb_kadeql_mixed_projection_reversed_test
+  kadeql_mixed_projection_reversed_test.cpp
+)
+
+target_link_libraries(kadedb_kadeql_mixed_projection_reversed_test PRIVATE KadeDB::kadedb_core)
+
+target_compile_features(kadedb_kadeql_mixed_projection_reversed_test PRIVATE cxx_std_17)
+
+add_test(NAME kadedb_kadeql_mixed_projection_reversed_test COMMAND kadedb_kadeql_mixed_projection_reversed_test)
