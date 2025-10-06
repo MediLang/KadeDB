@@ -275,3 +275,14 @@ target_link_libraries(kadedb_kadeql_mixed_projection_reversed_test PRIVATE KadeD
 target_compile_features(kadedb_kadeql_mixed_projection_reversed_test PRIVATE cxx_std_17)
 
 add_test(NAME kadedb_kadeql_mixed_projection_reversed_test COMMAND kadedb_kadeql_mixed_projection_reversed_test)
+
+# KadeQL INSERT integration tests
+add_executable(kadedb_kadeql_insert_integration_test
+  kadeql_insert_integration_test.cpp
+)
+
+target_link_libraries(kadedb_kadeql_insert_integration_test PRIVATE KadeDB::kadedb_core)
+
+target_compile_features(kadedb_kadeql_insert_integration_test PRIVATE cxx_std_17)
+
+add_test(NAME kadedb_kadeql_insert_integration_test COMMAND kadedb_kadeql_insert_integration_test)
