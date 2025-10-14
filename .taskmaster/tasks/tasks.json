@@ -312,7 +312,7 @@
               "5.3"
             ],
             "details": "Implement a basic query optimizer that can reorder operations for efficiency. Focus on predicate pushdown to minimize data scanning. Optimize simple WHERE clauses by leveraging storage layer filtering capabilities. Implement predicate simplification for common patterns. Document optimization strategies used. Remember to prioritize correctness over performance for the MVP.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {

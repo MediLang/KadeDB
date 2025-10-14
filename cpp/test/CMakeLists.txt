@@ -286,3 +286,25 @@ target_link_libraries(kadedb_kadeql_insert_integration_test PRIVATE KadeDB::kade
 target_compile_features(kadedb_kadeql_insert_integration_test PRIVATE cxx_std_17)
 
 add_test(NAME kadedb_kadeql_insert_integration_test COMMAND kadedb_kadeql_insert_integration_test)
+
+# KadeQL optimizer canonicalization tests
+add_executable(kadedb_kadeql_optimizer_canonicalization_test
+  kadeql_optimizer_canonicalization_test.cpp
+)
+
+target_link_libraries(kadedb_kadeql_optimizer_canonicalization_test PRIVATE KadeDB::kadedb_core)
+
+target_compile_features(kadedb_kadeql_optimizer_canonicalization_test PRIVATE cxx_std_17)
+
+add_test(NAME kadedb_kadeql_optimizer_canonicalization_test COMMAND kadedb_kadeql_optimizer_canonicalization_test)
+
+# KadeQL unknown column predicate validation test
+add_executable(kadedb_kadeql_unknown_column_predicate_test
+  kadeql_unknown_column_predicate_test.cpp
+)
+
+target_link_libraries(kadedb_kadeql_unknown_column_predicate_test PRIVATE KadeDB::kadedb_core)
+
+target_compile_features(kadedb_kadeql_unknown_column_predicate_test PRIVATE cxx_std_17)
+
+add_test(NAME kadedb_kadeql_unknown_column_predicate_test COMMAND kadedb_kadeql_unknown_column_predicate_test)

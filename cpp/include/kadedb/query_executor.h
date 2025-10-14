@@ -40,6 +40,11 @@ private:
   Result<std::unique_ptr<Value>> evalExpr(const Expression *expr,
                                           const TableSchema &schema,
                                           const Row &row) const;
+
+  // Validate that all columns referenced in the predicate exist in the table
+  // schema. Returns Status::InvalidArgument on unknown columns.
+  Status validatePredicateColumns(const std::string &table,
+                                  const std::optional<Predicate> &where);
 };
 
 } // namespace kadeql

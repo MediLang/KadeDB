@@ -4,7 +4,9 @@
 #include "kadedb/schema.h"
 #include "kadedb/value.h"
 
+#include <algorithm>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace kadedb {
 namespace kadeql {
@@ -23,6 +25,51 @@ QueryExecutor::literalToValue(const LiteralExpression::Value &v) const {
     return ValueFactory::createInteger(std::get<int64_t>(v));
   }
   return ValueFactory::createNull();
+}
+
+// Validate that all columns referenced in a predicate exist in the table schema
+Status
+QueryExecutor::validatePredicateColumns(const std::string &table,
+                                        const std::optional<Predicate> &where) {
+  if (!where)
+    return Status::OK();
+
+  // Probe schema via select * (as in executeInsert)
+  auto probe = storage_.select(table, /*columns=*/{}, /*where=*/std::nullopt);
+  if (!probe.hasValue()) {
+    return probe.status();
+  }
+  const ResultSet &schemaView = probe.value();
+  const auto &allCols = schemaView.columnNames();
+  std::unordered_set<std::string> colset(allCols.begin(), allCols.end());
+
+  // Recursive check
+  std::function<Status(const Predicate &)> check =
+      [&](const Predicate &p) -> Status {
+    using K = Predicate::Kind;
+    switch (p.kind) {
+    case K::Comparison:
+      if (colset.find(p.column) == colset.end())
+        return Status::InvalidArgument("Unknown column in predicate: " +
+                                       p.column);
+      return Status::OK();
+    case K::And:
+    case K::Or:
+      for (const auto &ch : p.children) {
+        auto st = check(ch);
+        if (!st.ok())
+          return st;
+      }
+      return Status::OK();
+    case K::Not:
+      if (p.children.empty())
+        return Status::OK();
+      return check(p.children.front());
+    }
+    return Status::OK();
+  };
+
+  return check(*where);
 }
 
 static Predicate::Op toPredOp(BinaryExpression::Operator op) {
@@ -54,6 +101,234 @@ static Predicate::Op toPredOp(BinaryExpression::Operator op) {
   // Choose a safe default and avoid warnings; comparisons are the only valid
   // inputs.
   return Predicate::Op::Eq;
+}
+
+// ----- Predicate simplification (MVP optimizer) -----
+
+// Helpers to stringify Value/Predictate for dedup/sorting
+static std::string valueKey(const Value &v) { return v.toString(); }
+
+static std::string predKey(const Predicate &p);
+
+static Predicate::Op invertOp(Predicate::Op op) {
+  using PO = Predicate::Op;
+  switch (op) {
+  case PO::Eq:
+    return PO::Ne;
+  case PO::Ne:
+    return PO::Eq;
+  case PO::Lt:
+    return PO::Ge;
+  case PO::Le:
+    return PO::Gt;
+  case PO::Gt:
+    return PO::Le;
+  case PO::Ge:
+    return PO::Lt;
+  }
+  return op;
+}
+
+// Forward decl
+static Predicate simplifyPred(const Predicate &p);
+
+// Helpers to create logical-constant predicates using empty-children semantics
+// AND with zero children -> true; OR with zero children -> false.
+static Predicate makeTruePred() {
+  Predicate t;
+  t.kind = Predicate::Kind::And;
+  return t;
+}
+static Predicate makeFalsePred() {
+  Predicate f;
+  f.kind = Predicate::Kind::Or;
+  return f;
+}
+
+// Normalize logical children: simplify each, flatten, sort, dedup
+static void normalizeLogicalChildren(Predicate &p) {
+  std::vector<Predicate> flat;
+  flat.reserve(p.children.size());
+  for (const auto &ch : p.children) {
+    Predicate s = simplifyPred(ch);
+    if (s.kind == p.kind) {
+      // flatten
+      for (auto &gc : s.children)
+        flat.emplace_back(std::move(gc));
+    } else {
+      flat.emplace_back(std::move(s));
+    }
+  }
+  // Sort by key for deterministic ordering
+  std::vector<std::pair<std::string, size_t>> order;
+  order.reserve(flat.size());
+  for (size_t i = 0; i < flat.size(); ++i) {
+    order.emplace_back(predKey(flat[i]), i);
+  }
+  std::sort(order.begin(), order.end(),
+            [](const auto &a, const auto &b) { return a.first < b.first; });
+  // Deduplicate by key
+  std::vector<Predicate> dedup;
+  dedup.reserve(order.size());
+  std::string lastKey;
+  bool first = true;
+  for (const auto &kv : order) {
+    const auto &key = kv.first;
+    if (!first && key == lastKey)
+      continue;
+    dedup.emplace_back(std::move(flat[kv.second]));
+    lastKey = key;
+    first = false;
+  }
+  p.children = std::move(dedup);
+}
+
+static Predicate simplifyPred(const Predicate &p) {
+  using K = Predicate::Kind;
+  // Copy node first, then mutate
+  Predicate out;
+  out.kind = p.kind;
+  switch (p.kind) {
+  case K::Comparison: {
+    out.column = p.column;
+    out.op = p.op;
+    out.rhs = p.rhs ? p.rhs->clone() : nullptr;
+    return out;
+  }
+  case K::And:
+  case K::Or: {
+    // Build children without copying move-only members
+    out.children.clear();
+    out.children.reserve(p.children.size());
+    for (const auto &ch : p.children) {
+      out.children.emplace_back(simplifyPred(ch));
+    }
+    normalizeLogicalChildren(out);
+    // Short-circuit identities with constants
+    // True == And([]), False == Or([])
+    if (out.kind == K::And) {
+      // Remove true children; if any false child present, whole And is false
+      std::vector<Predicate> kept;
+      kept.reserve(out.children.size());
+      for (auto &c : out.children) {
+        if (c.kind == K::Or && c.children.empty()) {
+          // false -> entire And becomes false
+          return makeFalsePred();
+        }
+        if (c.kind == K::And && c.children.empty()) {
+          // true -> skip
+          continue;
+        }
+        kept.emplace_back(std::move(c));
+      }
+      out.children = std::move(kept);
+      // If empty after removals -> true
+      if (out.children.empty())
+        return makeTruePred();
+      return out;
+    } else { // Or
+      // Remove false children; if any true child present, whole Or is true
+      std::vector<Predicate> kept;
+      kept.reserve(out.children.size());
+      for (auto &c : out.children) {
+        if (c.kind == K::And && c.children.empty()) {
+          // true -> entire Or becomes true
+          return makeTruePred();
+        }
+        if (c.kind == K::Or && c.children.empty()) {
+          // false -> skip
+          continue;
+        }
+        kept.emplace_back(std::move(c));
+      }
+      out.children = std::move(kept);
+      // If empty after removals -> false
+      if (out.children.empty())
+        return makeFalsePred();
+      return out;
+    }
+  }
+  case K::Not: {
+    // Simplify child first (if any)
+    if (p.children.empty()) {
+      // NOT with no child stays as-is; evaluation will yield false
+      return out; // empty NOT
+    }
+    Predicate child = simplifyPred(p.children.front());
+    // Double negation
+    if (child.kind == K::Not) {
+      if (!child.children.empty()) {
+        return simplifyPred(child.children.front());
+      }
+      Predicate emptyNot;
+      emptyNot.kind = K::Not;
+      return emptyNot; // remains NOT empty
+    }
+    // De Morgan for AND/OR
+    if (child.kind == K::And || child.kind == K::Or) {
+      Predicate dem;
+      dem.kind = (child.kind == K::And) ? K::Or : K::And;
+      dem.children.reserve(child.children.size());
+      for (const auto &gc : child.children) {
+        Predicate n;
+        n.kind = K::Not;
+        n.children.emplace_back(simplifyPred(gc));
+        dem.children.emplace_back(std::move(n));
+      }
+      normalizeLogicalChildren(dem);
+      return dem;
+    }
+    // NOT over comparison: invert operator
+    if (child.kind == K::Comparison) {
+      Predicate inv;
+      inv.kind = K::Comparison;
+      inv.column = child.column;
+      inv.op = invertOp(child.op);
+      inv.rhs = child.rhs ? child.rhs->clone() : nullptr;
+      return inv;
+    }
+    // Fallback: wrap simplified child
+    Predicate wrap;
+    wrap.kind = K::Not;
+    wrap.children.emplace_back(std::move(child));
+    return wrap;
+  }
+  }
+  return out; // unreachable
+}
+
+static std::string predKey(const Predicate &p) {
+  using K = Predicate::Kind;
+  switch (p.kind) {
+  case K::Comparison: {
+    std::string rhsStr = p.rhs ? valueKey(*p.rhs) : std::string("<null>");
+    return std::string("C|") + p.column + "|" +
+           std::to_string(static_cast<int>(p.op)) + "|" + rhsStr;
+  }
+  case K::And:
+  case K::Or: {
+    std::string s(1, p.kind == K::And ? 'A' : 'O');
+    s += "|";
+    // Children might be unsorted; produce keys and sort for canonical form
+    std::vector<std::string> keys;
+    keys.reserve(p.children.size());
+    for (const auto &ch : p.children)
+      keys.emplace_back(predKey(ch));
+    std::sort(keys.begin(), keys.end());
+    for (const auto &k : keys) {
+      s += k;
+      s += ",";
+    }
+    return s;
+  }
+  case K::Not: {
+    std::string s("N|");
+    if (!p.children.empty())
+      s += predKey(p.children.front());
+    return s;
+  }
+  }
+  return "";
 }
 
 Result<std::optional<Predicate>>
@@ -112,13 +387,53 @@ QueryExecutor::buildPredicate(const Expression *expr) const {
       return Result<std::optional<Predicate>>::ok(std::move(out));
     }
 
-    // Comparison: expect Identifier on one side and Literal on the other
+    // Comparison: prefer Identifier vs Literal; but allow Literal vs Literal
     const Expression *L = be->getLeft();
     const Expression *R = be->getRight();
 
     const IdentifierExpression *id =
         dynamic_cast<const IdentifierExpression *>(L);
     const LiteralExpression *lit = dynamic_cast<const LiteralExpression *>(R);
+
+    // New: literal-vs-literal constant folding
+    if (!id && dynamic_cast<const LiteralExpression *>(L) &&
+        dynamic_cast<const LiteralExpression *>(R)) {
+      // Evaluate as Value compare and return logical constant predicate
+      const auto *lLit = static_cast<const LiteralExpression *>(L);
+      const auto *rLit = static_cast<const LiteralExpression *>(R);
+      std::unique_ptr<Value> LV = literalToValue(lLit->getValue());
+      std::unique_ptr<Value> RV = literalToValue(rLit->getValue());
+      int cmp = LV->compare(*RV);
+      using BO = BinaryExpression::Operator;
+      bool result = false;
+      switch (op) {
+      case BO::EQUALS:
+        result = (cmp == 0);
+        break;
+      case BO::NOT_EQUALS:
+        result = (cmp != 0);
+        break;
+      case BO::LESS_THAN:
+        result = (cmp < 0);
+        break;
+      case BO::LESS_EQUAL:
+        result = (cmp <= 0);
+        break;
+      case BO::GREATER_THAN:
+        result = (cmp > 0);
+        break;
+      case BO::GREATER_EQUAL:
+        result = (cmp >= 0);
+        break;
+      default:
+        return Result<std::optional<Predicate>>::err(Status::InvalidArgument(
+            "Unsupported operator for literal comparison"));
+      }
+      std::optional<Predicate> out;
+      Predicate c = result ? makeTruePred() : makeFalsePred();
+      out.emplace(std::move(c));
+      return Result<std::optional<Predicate>>::ok(std::move(out));
+    }
 
     bool reversed = false;
     if (!id || !lit) {
@@ -203,8 +518,17 @@ Result<ResultSet> QueryExecutor::executeSelect(const SelectStatement &select) {
   auto predRes = buildPredicate(select.getWhereClause());
   if (!predRes.hasValue())
     return Result<ResultSet>::err(predRes.status());
-
-  return storage_.select(select.getTableName(), cols, predRes.value());
+  // Simplify predicate before pushdown
+  std::optional<Predicate> where = predRes.takeValue();
+  if (where) {
+    where = simplifyPred(*where);
+  }
+  // Validate referenced columns (clearer error vs silent mismatch)
+  if (auto st = validatePredicateColumns(select.getTableName(), where);
+      !st.ok()) {
+    return Result<ResultSet>::err(st);
+  }
+  return storage_.select(select.getTableName(), cols, where);
 }
 
 Result<ResultSet> QueryExecutor::executeInsert(const InsertStatement &insert) {
@@ -316,6 +640,15 @@ Result<ResultSet> QueryExecutor::executeUpdate(const UpdateStatement &update) {
     }
   }
 
+  // Simplify predicate before pushdown
+  std::optional<Predicate> where = predRes.takeValue();
+  if (where) {
+    where = simplifyPred(*where);
+  }
+  // Validate referenced columns
+  if (auto st = validatePredicateColumns(table, where); !st.ok()) {
+    return Result<ResultSet>::err(st);
+  }
   size_t affected = 0;
   if (allSimple) {
     // Fast path: use storage.updateRows with AssignmentValue map
@@ -334,7 +667,7 @@ Result<ResultSet> QueryExecutor::executeUpdate(const UpdateStatement &update) {
       }
       assigns.emplace(col, std::move(av));
     }
-    auto upd = storage_.updateRows(table, assigns, predRes.value());
+    auto upd = storage_.updateRows(table, assigns, where);
     if (!upd.hasValue())
       return Result<ResultSet>::err(upd.status());
     affected = upd.value();
@@ -355,7 +688,7 @@ Result<ResultSet> QueryExecutor::executeUpdate(const UpdateStatement &update) {
       }
       return Status::OK();
     };
-    auto upd = storage_.updateRowsWith(table, updater, predRes.value());
+    auto upd = storage_.updateRowsWith(table, updater, where);
     if (!upd.hasValue())
       return Result<ResultSet>::err(upd.status());
     affected = upd.value();
@@ -380,7 +713,17 @@ Result<ResultSet> QueryExecutor::executeDelete(const DeleteStatement &del) {
   if (!predRes.hasValue())
     return Result<ResultSet>::err(predRes.status());
 
-  auto res = storage_.deleteRows(table, predRes.value());
+  // Simplify predicate before pushdown
+  std::optional<Predicate> where = predRes.takeValue();
+  if (where) {
+    where = simplifyPred(*where);
+  }
+  // Validate referenced columns
+  if (auto st = validatePredicateColumns(table, where); !st.ok()) {
+    return Result<ResultSet>::err(st);
+  }
+
+  auto res = storage_.deleteRows(table, where);
   if (!res.hasValue()) {
     return Result<ResultSet>::err(res.status());
   }
