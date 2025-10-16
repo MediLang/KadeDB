@@ -270,7 +270,7 @@
           3,
           4
         ],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -326,8 +326,8 @@
               "5.4"
             ],
             "details": "Create integration tests that combine the parser, executor, and storage components. Develop end-to-end test cases covering SELECT and INSERT operations with various complexity levels. Test error handling and edge cases across the entire execution path. Verify result correctness against expected outputs. Include performance benchmarks for basic operations to establish baselines for future optimization.",
-            "status": "pending",
-            "testStrategy": ""
+            "status": "done",
+            "testStrategy": "Tests and benchmarks live in cpp/test/: kadeql_end_to_end_test.cpp, kadeql_basic_bench.cpp, and existing kadeql_*_integration_test.cpp."
           }
         ]
       },

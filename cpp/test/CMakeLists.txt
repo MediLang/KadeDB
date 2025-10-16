@@ -308,3 +308,26 @@ target_link_libraries(kadedb_kadeql_unknown_column_predicate_test PRIVATE KadeDB
 target_compile_features(kadedb_kadeql_unknown_column_predicate_test PRIVATE cxx_std_17)
 
 add_test(NAME kadedb_kadeql_unknown_column_predicate_test COMMAND kadedb_kadeql_unknown_column_predicate_test)
+
+# KadeQL end-to-end tests (parser + executor + storage, error handling)
+add_executable(kadedb_kadeql_end_to_end_test
+  kadeql_end_to_end_test.cpp
+)
+
+target_link_libraries(kadedb_kadeql_end_to_end_test PRIVATE KadeDB::kadedb_core)
+
+target_compile_features(kadedb_kadeql_end_to_end_test PRIVATE cxx_std_17)
+
+add_test(NAME kadedb_kadeql_end_to_end_test COMMAND kadedb_kadeql_end_to_end_test)
+
+# Basic performance benchmark (not a pass/fail test, but useful in CI logs)
+add_executable(kadedb_kadeql_basic_bench
+  kadeql_basic_bench.cpp
+)
+
+target_link_libraries(kadedb_kadeql_basic_bench PRIVATE KadeDB::kadedb_core)
+
+target_compile_features(kadedb_kadeql_basic_bench PRIVATE cxx_std_17)
+
+# Register as a test so it runs in CI and prints timing to stdout
+add_test(NAME kadedb_kadeql_basic_bench COMMAND kadedb_kadeql_basic_bench)
