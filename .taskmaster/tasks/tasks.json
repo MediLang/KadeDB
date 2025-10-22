@@ -342,7 +342,7 @@
           3,
           5
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -350,7 +350,7 @@
             "description": "Create the C header file structure with version information and initialization functions",
             "dependencies": [],
             "details": "Create the initial kadedb.h header file with:\n- Header guards and extern \"C\" block\n- Version information functions (KadeDB_GetVersion, KadeDB_GetMajorVersion, etc.)\n- Library initialization/cleanup functions if needed\n- Error handling constants and functions\n- Basic type definitions and forward declarations\n\nEnsure the header is properly documented with comments explaining usage.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {

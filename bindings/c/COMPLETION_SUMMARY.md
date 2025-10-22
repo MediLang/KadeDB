@@ -82,6 +82,49 @@ Complete documentation covering:
 - Thread safety guidelines
 - Language-specific integration examples
 
+### 8. ✅ Relational storage + result iteration helpers
+
+**Location**: `bindings/c/include/kadedb/kadedb.h`
+
+- `KadeDB_CreateStorage()` / `KadeDB_DestroyStorage()` wrap the in-memory relational engine.
+- `KadeDB_CreateTable()` and `KadeDB_InsertRow()` expose CRUD entry points that reuse schema objects created via `KadeDB_TableSchema_*` routines.
+- `KadeDB_ExecuteQuery()` + `KadeDB_ResultSet_NextRow()` + `KadeDB_ResultSet_GetString()` enable simple cursor-style iteration over tabular results (currently supporting `SELECT * FROM <table>`).
+
+#### Quick usage example
+
+```c
+KadeDB_Initialize();
+KadeDB_Storage *storage = KadeDB_CreateStorage();
+
+// assume schema prepared via KadeDB_TableSchema_* helpers
+KadeDB_CreateTable(storage, "users", schema);
+KadeDB_InsertRow(storage, "users", &row);
+
+KadeDB_ResultSet *rs = KadeDB_ExecuteQuery(storage, "SELECT * FROM users");
+while (KadeDB_ResultSet_NextRow(rs)) {
+  const char *value = KadeDB_ResultSet_GetString(rs, 0);
+  printf("row[0]=%s\n", value);
+}
+KadeDB_DestroyResultSet(rs);
+KadeDB_DestroyStorage(storage);
+KadeDB_Shutdown();
+```
+
+### 9. ✅ Version helper utilities
+
+**Location**: `bindings/c/include/kadedb/kadedb.h`
+
+- `KadeDB_GetVersion()` returns the full semantic version string.
+- `KadeDB_GetMajorVersion()`, `KadeDB_GetMinorVersion()`, and `KadeDB_GetPatchVersion()` expose numeric components suitable for compile-time guards.
+
+```c
+printf("KadeDB %s (major=%d minor=%d patch=%d)\n",
+       KadeDB_GetVersion(),
+       KadeDB_GetMajorVersion(),
+       KadeDB_GetMinorVersion(),
+       KadeDB_GetPatchVersion());
+```
+
 ## 🧪 VALIDATION AND TESTING
 
 **Location**: `bindings/c/test/simple_ffi_test.c`

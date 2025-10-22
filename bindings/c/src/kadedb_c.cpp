@@ -3,6 +3,7 @@
 
 #include "kadedb/result.h"
 #include "kadedb/schema.h"
+#include "kadedb/storage.h"
 #include "kadedb/value.h"
 
 #include <cmath>
@@ -271,6 +272,13 @@ const char *KadeDB_GetVersion() {
   // Safe to return string literal defined by CMake at configure time
   return KADEDB_VERSION;
 }
+
+int KadeDB_GetMajorVersion() { return KADEDB_VERSION_MAJOR; }
+int KadeDB_GetMinorVersion() { return KADEDB_VERSION_MINOR; }
+int KadeDB_GetPatchVersion() { return KADEDB_VERSION_PATCH; }
+
+int KadeDB_Initialize() { return 1; }
+void KadeDB_Shutdown() {}
 
 int KadeDB_DocumentSchema_SetFieldFlags(KDB_DocumentSchema *schema,
                                         const char *field_name, int nullable,
@@ -713,3 +721,138 @@ extern "C" int KadeDB_Paginate_Bounds(unsigned long long total_rows,
     *out_end = end;
   return 1;
 }
+
+// ---------------- Minimal Relational Storage C ABI ----------------
+
+struct KadeDB_Storage {
+  InMemoryRelationalStorage impl;
+};
+
+struct KadeDB_ResultSet {
+  std::unique_ptr<ResultSet> impl;
+  size_t cursor = static_cast<size_t>(-1);
+  std::string scratch;
+};
+
+extern "C" KadeDB_Storage *KadeDB_CreateStorage() {
+  try {
+    return new KadeDB_Storage{};
+  } catch (...) {
+    return nullptr;
+  }
+}
+
+extern "C" void KadeDB_DestroyStorage(KadeDB_Storage *storage) {
+  delete storage;
+}
+
+extern "C" int KadeDB_CreateTable(KadeDB_Storage *storage, const char *table,
+                                  const KDB_TableSchema *schema) {
+  if (!storage || !table || !schema)
+    return 0;
+  Status st = storage->impl.createTable(std::string{table}, schema->impl);
+  return st.ok() ? 1 : 0;
+}
+
+extern "C" int KadeDB_InsertRow(KadeDB_Storage *storage, const char *table,
+                                const KDB_RowView *row) {
+  if (!storage || !table || !row)
+    return 0;
+  Row r(static_cast<size_t>(row->count));
+  for (unsigned long long i = 0; i < row->count; ++i) {
+    const KDB_Value &v = row->values[i];
+    if (v.type == KDB_VAL_NULL)
+      r.set(static_cast<size_t>(i), nullptr);
+    else
+      r.set(static_cast<size_t>(i), from_c_value(v));
+  }
+  Status st = storage->impl.insertRow(std::string{table}, r);
+  return st.ok() ? 1 : 0;
+}
+
+// very small SELECT parser: supports only "SELECT * FROM <table>"
+// (case-insensitive)
+static std::string parse_select_star_from(const char *query) {
+  if (!query)
+    return {};
+  // trim leading spaces
+  const char *p = query;
+  while (*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r')
+    ++p;
+  auto tolower_str = [](const std::string &s) {
+    std::string o;
+    o.reserve(s.size());
+    for (char c : s)
+      o.push_back(static_cast<char>(::tolower(static_cast<unsigned char>(c))));
+    return o;
+  };
+  std::string s = tolower_str(p);
+  const std::string prefix = "select * from ";
+  if (s.rfind(prefix, 0) != 0)
+    return {};
+  std::string rest = s.substr(prefix.size());
+  // trim trailing semicolon/spaces
+  while (!rest.empty() &&
+         (rest.back() == ' ' || rest.back() == '\t' || rest.back() == '\n' ||
+          rest.back() == '\r' || rest.back() == ';'))
+    rest.pop_back();
+  // original case table name: extract from original query at equivalent
+  // position
+  size_t off = static_cast<size_t>(p - query) + prefix.size();
+  std::string table = std::string(query + off, query + off + rest.size());
+  // trim trailing whitespace in original
+  while (!table.empty() &&
+         (table.back() == ' ' || table.back() == '\t' || table.back() == '\n' ||
+          table.back() == '\r' || table.back() == ';'))
+    table.pop_back();
+  return table;
+}
+
+extern "C" KadeDB_ResultSet *KadeDB_ExecuteQuery(KadeDB_Storage *storage,
+                                                 const char *query) {
+  if (!storage || !query)
+    return nullptr;
+  std::string table = parse_select_star_from(query);
+  if (table.empty())
+    return nullptr;
+  auto res =
+      storage->impl.select(table, /*columns*/ {}, /*where*/ std::nullopt);
+  if (!res.hasValue())
+    return nullptr;
+  try {
+    auto *out = new KadeDB_ResultSet{};
+    out->impl = std::make_unique<ResultSet>(std::move(res.value()));
+    out->cursor = static_cast<size_t>(-1);
+    return out;
+  } catch (...) {
+    return nullptr;
+  }
+}
+
+extern "C" int KadeDB_ResultSet_NextRow(KadeDB_ResultSet *rs) {
+  if (!rs || !rs->impl)
+    return 0;
+  // emulate ResultSet::next over our own cursor
+  if (rs->cursor + 1 < rs->impl->rowCount()) {
+    ++rs->cursor;
+    return 1;
+  }
+  return 0;
+}
+
+extern "C" const char *KadeDB_ResultSet_GetString(KadeDB_ResultSet *rs,
+                                                  int column) {
+  if (!rs || !rs->impl || rs->cursor >= rs->impl->rowCount() || column < 0)
+    return nullptr;
+  size_t col = static_cast<size_t>(column);
+  if (col >= rs->impl->columnCount())
+    return nullptr;
+  try {
+    rs->scratch = rs->impl->row(rs->cursor).toString(col);
+    return rs->scratch.c_str();
+  } catch (...) {
+    return nullptr;
+  }
+}
+
+extern "C" void KadeDB_DestroyResultSet(KadeDB_ResultSet *rs) { delete rs; }

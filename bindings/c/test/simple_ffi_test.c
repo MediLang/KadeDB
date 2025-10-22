@@ -32,7 +32,65 @@ void test_version() {
   assert(version != NULL);
   assert(strlen(version) > 0);
 
+  int major = 0, minor = 0, patch = 0;
+  int parsed = sscanf(version, "%d.%d.%d", &major, &minor, &patch);
+  assert(parsed == 3);
+  assert(major == KadeDB_GetMajorVersion());
+  assert(minor == KadeDB_GetMinorVersion());
+  assert(patch == KadeDB_GetPatchVersion());
+
   printf("✓ Version test passed\n\n");
+}
+
+void test_storage_query() {
+  printf("=== Testing Storage + Query ABI ===\n");
+
+  int init_result = KadeDB_Initialize();
+  assert(init_result == 1);
+
+  KadeDB_Storage *storage = KadeDB_CreateStorage();
+  assert(storage != NULL);
+
+  KDB_TableSchema *schema = KadeDB_TableSchema_Create();
+  assert(schema != NULL);
+
+  KDB_TableColumnEx column = {
+      "name", KDB_COL_STRING,
+      0,   // not nullable
+      0,   // not unique
+      NULL // no extra constraints
+  };
+
+  int add_status = KadeDB_TableSchema_AddColumn(schema, &column);
+  assert(add_status == 1);
+
+  int create_status = KadeDB_CreateTable(storage, "users", schema);
+  assert(create_status == 1);
+
+  KDB_Value row_values[1];
+  row_values[0].type = KDB_VAL_STRING;
+  row_values[0].as.str = "alice";
+
+  KDB_RowView row = {row_values, 1};
+  int insert_status = KadeDB_InsertRow(storage, "users", &row);
+  assert(insert_status == 1);
+
+  KadeDB_ResultSet *rs = KadeDB_ExecuteQuery(storage, "SELECT * FROM users");
+  assert(rs != NULL);
+
+  int has_row = KadeDB_ResultSet_NextRow(rs);
+  assert(has_row == 1);
+  const char *name = KadeDB_ResultSet_GetString(rs, 0);
+  assert(name != NULL);
+  assert(strcmp(name, "alice") == 0);
+  assert(KadeDB_ResultSet_NextRow(rs) == 0);
+
+  KadeDB_DestroyResultSet(rs);
+  KadeDB_TableSchema_Destroy(schema);
+  KadeDB_DestroyStorage(storage);
+  KadeDB_Shutdown();
+
+  printf("✓ Storage + Query tests passed\n\n");
 }
 
 void test_value_handles() {
@@ -147,6 +205,7 @@ int main() {
   test_version();
   test_value_handles();
   test_table_schema();
+  test_storage_query();
   test_memory_management();
 
   printf("🎉 ALL BASIC FFI TESTS PASSED! 🎉\n");

@@ -7,6 +7,14 @@ extern "C" {
 
 // Returns a string literal with the KadeDB version (e.g., "0.1.0").
 const char *KadeDB_GetVersion();
+// Version helpers (numeric components)
+int KadeDB_GetMajorVersion();
+int KadeDB_GetMinorVersion();
+int KadeDB_GetPatchVersion();
+
+// Optional library init/cleanup (currently no-op; reserved for future use)
+int KadeDB_Initialize();
+void KadeDB_Shutdown();
 
 // ---------- Schema/Document minimal C API ----------
 
@@ -265,6 +273,43 @@ int KadeDB_Paginate_Bounds(unsigned long long total_rows,
                            unsigned long long page_index,
                            unsigned long long *out_start,
                            unsigned long long *out_end);
+
+// ---------- Relational Storage minimal C API ----------
+
+// Opaque storage type wrapping an in-memory relational engine
+typedef struct KadeDB_Storage KadeDB_Storage;
+
+// Opaque ResultSet cursor for simple row iteration
+typedef struct KadeDB_ResultSet KadeDB_ResultSet;
+
+// Create/destroy storage instance
+KadeDB_Storage *KadeDB_CreateStorage();
+void KadeDB_DestroyStorage(KadeDB_Storage *storage);
+
+// Create a table with a provided schema
+// Returns 1 on success; 0 on error
+int KadeDB_CreateTable(KadeDB_Storage *storage, const char *table,
+                       const KDB_TableSchema *schema);
+
+// Insert a row; row is provided as a view (values array)
+// Returns 1 on success; 0 on error
+int KadeDB_InsertRow(KadeDB_Storage *storage, const char *table,
+                     const KDB_RowView *row);
+
+// Execute a very basic query string. Supported form:
+//   "SELECT * FROM <table>"
+// Returns a result set cursor or NULL on error/unsupported query
+KadeDB_ResultSet *KadeDB_ExecuteQuery(KadeDB_Storage *storage,
+                                      const char *query);
+
+// ResultSet iteration utilities
+// Move to next row; returns 1 when a row is available, 0 when no more rows
+int KadeDB_ResultSet_NextRow(KadeDB_ResultSet *rs);
+// Get a string representation of the current row's column; returns NULL on
+// error
+const char *KadeDB_ResultSet_GetString(KadeDB_ResultSet *rs, int column);
+// Destroy the result set and free resources
+void KadeDB_DestroyResultSet(KadeDB_ResultSet *rs);
 
 #ifdef __cplusplus
 }
