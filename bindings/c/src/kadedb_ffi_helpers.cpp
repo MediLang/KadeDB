@@ -230,6 +230,11 @@ int kadedb_handle_to_value(const KDB_ValueHandle *handle, KDB_Value *out_value,
     return 0;
   }
   try {
+    // Use a thread-local cache for string data to keep the c_str() valid
+    // after this function returns (until the next call on this thread).
+    // This avoids requiring the caller to free memory and prevents dangling
+    // pointers in optimized builds.
+    thread_local std::string __kadedb_string_tls_cache;
     switch (handle->impl->type()) {
     case ValueType::Null:
       out_value->type = KDB_VAL_NULL;
@@ -244,8 +249,8 @@ int kadedb_handle_to_value(const KDB_ValueHandle *handle, KDB_Value *out_value,
       break;
     case ValueType::String:
       out_value->type = KDB_VAL_STRING;
-      // Pointer valid while handle exists (documented in header)
-      out_value->as.str = handle->impl->asString().c_str();
+      __kadedb_string_tls_cache = handle->impl->asString();
+      out_value->as.str = __kadedb_string_tls_cache.c_str();
       break;
     case ValueType::Boolean:
       out_value->type = KDB_VAL_BOOLEAN;
@@ -667,8 +672,19 @@ KDB_ValueHandle *KadeDB_RowShallow_Get(const KDB_RowShallow *row,
     return nullptr;
   }
   try {
-    const Value &val = row->impl.at(static_cast<size_t>(index));
-    return new KDB_ValueHandle(val.clone());
+    size_t idx = static_cast<size_t>(index);
+    // Bounds check via size()
+    if (idx >= row->impl.size()) {
+      throw std::out_of_range("RowShallow index out of range");
+    }
+    // Access underlying shared_ptr without dereferencing through at()
+    const auto &cellPtr = row->impl.values().at(idx);
+    if (!cellPtr) {
+      KADEDB_SET_ERROR(error, KDB_ERROR_INVALID_ARGUMENT,
+                       "RowShallow cell is null");
+      return nullptr;
+    }
+    return new KDB_ValueHandle(cellPtr->clone());
   } catch (const std::out_of_range &e) {
     KADEDB_SET_ERROR(error, KDB_ERROR_OUT_OF_RANGE, e.what());
     return nullptr;

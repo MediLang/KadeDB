@@ -269,7 +269,13 @@ Document deepCopyDocument(const Document &doc) {
 RowShallow RowShallow::fromClones(const Row &r) {
   RowShallow rs(r.size());
   for (size_t i = 0; i < r.size(); ++i) {
-    rs.set(i, std::shared_ptr<Value>(r.at(i).clone().release()));
+    const auto &src = r.values()[i];
+    if (src) {
+      rs.set(i, std::shared_ptr<Value>(src->clone().release()));
+    } else {
+      // leave as nullptr to mirror source row null
+      rs.set(i, std::shared_ptr<Value>());
+    }
   }
   return rs;
 }
