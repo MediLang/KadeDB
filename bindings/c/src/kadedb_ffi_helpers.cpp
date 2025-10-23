@@ -11,6 +11,22 @@
 
 using namespace kadedb;
 
+// Minimal diagnostics (stderr) controllable at runtime.
+// Enabled by default on Windows Release builds to aid CI debugging; otherwise
+// enable by setting environment variable KADEDB_DIAG=1.
+static bool kadedb_diag_enabled() {
+#if defined(_WIN32) && defined(NDEBUG)
+  // Default ON in Windows Release unless explicitly disabled
+  const char *env = std::getenv("KADEDB_DIAG");
+  if (!env)
+    return true;
+  return env[0] != '0';
+#else
+  const char *env = std::getenv("KADEDB_DIAG");
+  return env && env[0] != '\0' && env[0] != '0';
+#endif
+}
+
 // ============================================================================
 // OPAQUE HANDLE IMPLEMENTATIONS
 // ============================================================================
@@ -615,6 +631,20 @@ KDB_RowShallow *KadeDB_RowShallow_FromRow(const KDB_Row *row) {
   if (!row)
     return nullptr;
   try {
+    if (kadedb_diag_enabled()) {
+      std::fprintf(stderr, "[diag] FromRow size=%zu\n", row->impl.size());
+      for (size_t i = 0; i < row->impl.size(); ++i) {
+        bool is_null = false;
+        try {
+          // Use values() to peek pointer without deref
+          is_null = (row->impl.values()[i] == nullptr);
+        } catch (...) {
+          is_null = true;
+        }
+        std::fprintf(stderr, "[diag] FromRow src[%zu]=%s\n", i,
+                     is_null ? "null" : "set");
+      }
+    }
     return new KDB_RowShallow(RowShallow::fromClones(row->impl));
   } catch (...) {
     return nullptr;
@@ -650,8 +680,13 @@ int KadeDB_RowShallow_Set(KDB_RowShallow *row, unsigned long long index,
     return 0;
   }
   try {
-    row->impl.set(static_cast<size_t>(index),
-                  std::shared_ptr<Value>(value->impl->clone().release()));
+    auto idx = static_cast<size_t>(index);
+    auto sp = std::shared_ptr<Value>(value->impl->clone().release());
+    row->impl.set(idx, sp);
+    if (kadedb_diag_enabled()) {
+      std::fprintf(stderr, "[diag] RowShallow_Set[%zu]=%s\n", idx,
+                   sp ? "set" : "null");
+    }
     return 1;
   } catch (const std::out_of_range &e) {
     KADEDB_SET_ERROR(error, KDB_ERROR_OUT_OF_RANGE, e.what());
@@ -679,6 +714,11 @@ KDB_ValueHandle *KadeDB_RowShallow_Get(const KDB_RowShallow *row,
     }
     // Access underlying shared_ptr without dereferencing through at()
     const auto &cellPtr = row->impl.values().at(idx);
+    if (kadedb_diag_enabled()) {
+      std::fprintf(stderr,
+                   "[diag] RowShallow_Get idx=%zu present=%s size=%zu\n", idx,
+                   cellPtr ? "yes" : "no", row->impl.size());
+    }
     if (!cellPtr) {
       KADEDB_SET_ERROR(error, KDB_ERROR_INVALID_ARGUMENT,
                        "RowShallow cell is null");
