@@ -472,7 +472,11 @@ const char *KadeDB_Value_AsString(const KDB_ValueHandle *value,
   }
 
   try {
-    return value->impl->asString().c_str();
+    // Use a thread-local cache to keep the c_str() valid for the caller
+    // until the next call on this thread.
+    thread_local std::string __kadedb_string_tls_cache_value_get;
+    __kadedb_string_tls_cache_value_get = value->impl->asString();
+    return __kadedb_string_tls_cache_value_get.c_str();
   } catch (const std::exception &e) {
     KADEDB_SET_ERROR(error, KDB_ERROR_TYPE_MISMATCH, e.what());
     return nullptr;
