@@ -605,8 +605,16 @@ KDB_ValueHandle *KadeDB_Row_Get(const KDB_Row *row, unsigned long long index,
   }
 
   try {
-    const Value &val = row->impl.at(static_cast<size_t>(index));
-    return new KDB_ValueHandle(val.clone());
+    size_t idx = static_cast<size_t>(index);
+    if (idx >= row->impl.size()) {
+      throw std::out_of_range("Row index out of range");
+    }
+    const auto &cellPtr = row->impl.values().at(idx);
+    if (!cellPtr) {
+      KADEDB_SET_ERROR(error, KDB_ERROR_INVALID_ARGUMENT, "Row cell is null");
+      return nullptr;
+    }
+    return new KDB_ValueHandle(cellPtr->clone());
   } catch (const std::out_of_range &e) {
     KADEDB_SET_ERROR(error, KDB_ERROR_OUT_OF_RANGE, e.what());
     return nullptr;
