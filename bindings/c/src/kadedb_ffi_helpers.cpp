@@ -35,6 +35,27 @@ struct KDB_RowShallow {
   explicit KDB_RowShallow(RowShallow r) : impl(std::move(r)) {}
 };
 
+// ----------------------------------------------------------------------------
+// Local C++ helper used by various C APIs
+// ----------------------------------------------------------------------------
+static std::unique_ptr<Value> from_c_value(const KDB_Value &v) {
+  switch (v.type) {
+  case KDB_VAL_NULL:
+    return ValueFactory::createNull();
+  case KDB_VAL_INTEGER:
+    return ValueFactory::createInteger(static_cast<int64_t>(v.as.i64));
+  case KDB_VAL_FLOAT:
+    return ValueFactory::createFloat(v.as.f64);
+  case KDB_VAL_STRING:
+    return ValueFactory::createString(v.as.str ? std::string(v.as.str)
+                                               : std::string());
+  case KDB_VAL_BOOLEAN:
+    return ValueFactory::createBoolean(v.as.boolean != 0);
+  default:
+    return ValueFactory::createNull();
+  }
+}
+
 // ============================================================================
 // ERROR HANDLING IMPLEMENTATION
 // ============================================================================
@@ -73,6 +94,8 @@ const char *kadedb_error_code_string(KDB_ErrorCode code) {
     return "Unrecognized error code";
   }
 }
+
+// keep extern "C" open for other functions below
 
 void kadedb_set_error(KDB_ErrorInfo *error, KDB_ErrorCode code,
                       const char *message, const char *context, int line) {
@@ -181,6 +204,145 @@ KDB_ValueHandle *KadeDB_Value_CreateNull() {
   } catch (...) {
     return nullptr;
   }
+}
+
+KDB_ValueHandle *kadedb_value_to_handle(const KDB_Value *c_value,
+                                        KDB_ErrorInfo *error) {
+  kadedb_clear_error(error);
+  if (!c_value) {
+    KADEDB_SET_ERROR(error, KDB_ERROR_INVALID_ARGUMENT, "c_value is null");
+    return nullptr;
+  }
+  try {
+    return new KDB_ValueHandle(from_c_value(*c_value));
+  } catch (const std::exception &e) {
+    KADEDB_SET_ERROR(error, KDB_ERROR_UNKNOWN, e.what());
+    return nullptr;
+  }
+}
+
+int kadedb_handle_to_value(const KDB_ValueHandle *handle, KDB_Value *out_value,
+                           KDB_ErrorInfo *error) {
+  kadedb_clear_error(error);
+  if (!handle || !handle->impl || !out_value) {
+    KADEDB_SET_ERROR(error, KDB_ERROR_INVALID_ARGUMENT,
+                     "handle or out_value is null");
+    return 0;
+  }
+  try {
+    switch (handle->impl->type()) {
+    case ValueType::Null:
+      out_value->type = KDB_VAL_NULL;
+      break;
+    case ValueType::Integer:
+      out_value->type = KDB_VAL_INTEGER;
+      out_value->as.i64 = static_cast<long long>(handle->impl->asInt());
+      break;
+    case ValueType::Float:
+      out_value->type = KDB_VAL_FLOAT;
+      out_value->as.f64 = handle->impl->asFloat();
+      break;
+    case ValueType::String:
+      out_value->type = KDB_VAL_STRING;
+      // Pointer valid while handle exists (documented in header)
+      out_value->as.str = handle->impl->asString().c_str();
+      break;
+    case ValueType::Boolean:
+      out_value->type = KDB_VAL_BOOLEAN;
+      out_value->as.boolean = handle->impl->asBool() ? 1 : 0;
+      break;
+    default:
+      out_value->type = KDB_VAL_NULL;
+      break;
+    }
+    return 1;
+  } catch (const std::exception &e) {
+    KADEDB_SET_ERROR(error, KDB_ERROR_UNKNOWN, e.what());
+    return 0;
+  }
+}
+
+int kadedb_create_document(const char **keys, const KDB_Value *values,
+                           unsigned long long count, KDB_KeyValue **out_doc,
+                           KDB_ErrorInfo *error) {
+  kadedb_clear_error(error);
+  if (!out_doc) {
+    KADEDB_SET_ERROR(error, KDB_ERROR_INVALID_ARGUMENT, "out_doc is null");
+    return 0;
+  }
+  if ((count > 0) && (!keys || !values)) {
+    KADEDB_SET_ERROR(error, KDB_ERROR_INVALID_ARGUMENT,
+                     "keys or values array is null");
+    return 0;
+  }
+  KDB_KeyValue *doc =
+      static_cast<KDB_KeyValue *>(std::malloc(count * sizeof(KDB_KeyValue)));
+  if (!doc) {
+    KADEDB_SET_ERROR(error, KDB_ERROR_MEMORY_ALLOCATION,
+                     "Failed to allocate document array");
+    return 0;
+  }
+  // Deep copy keys and string values
+  for (unsigned long long i = 0; i < count; ++i) {
+    const char *k = keys ? keys[i] : nullptr;
+    if (k) {
+      size_t len = std::strlen(k);
+      char *kdup = static_cast<char *>(std::malloc(len + 1));
+      if (!kdup) {
+        // rollback
+        for (unsigned long long j = 0; j < i; ++j) {
+          std::free((void *)doc[j].key);
+          if (doc[j].value.type == KDB_VAL_STRING) {
+            std::free((void *)doc[j].value.as.str);
+          }
+        }
+        std::free(doc);
+        KADEDB_SET_ERROR(error, KDB_ERROR_MEMORY_ALLOCATION,
+                         "Failed to allocate key string");
+        return 0;
+      }
+      std::strcpy(kdup, k);
+      doc[i].key = kdup;
+    } else {
+      doc[i].key = nullptr;
+    }
+
+    // Copy value; deep copy string content
+    doc[i].value = values ? values[i] : KDB_Value{KDB_VAL_NULL, {0}};
+    if (doc[i].value.type == KDB_VAL_STRING && doc[i].value.as.str) {
+      const char *sv = doc[i].value.as.str;
+      size_t slen = std::strlen(sv);
+      char *sdup = static_cast<char *>(std::malloc(slen + 1));
+      if (!sdup) {
+        for (unsigned long long j = 0; j <= i; ++j) {
+          std::free((void *)doc[j].key);
+          if (doc[j].value.type == KDB_VAL_STRING) {
+            std::free((void *)doc[j].value.as.str);
+          }
+        }
+        std::free(doc);
+        KADEDB_SET_ERROR(error, KDB_ERROR_MEMORY_ALLOCATION,
+                         "Failed to allocate value string");
+        return 0;
+      }
+      std::strcpy(sdup, sv);
+      doc[i].value.as.str = sdup;
+    }
+  }
+  *out_doc = doc;
+  return 1;
+}
+
+void kadedb_free_document(KDB_KeyValue *doc, unsigned long long count) {
+  if (!doc)
+    return;
+  for (unsigned long long i = 0; i < count; ++i) {
+    std::free((void *)doc[i].key);
+    if (doc[i].value.type == KDB_VAL_STRING) {
+      std::free((void *)doc[i].value.as.str);
+    }
+  }
+  std::free(doc);
 }
 
 KDB_ValueHandle *KadeDB_Value_CreateInteger(long long value) {
@@ -431,6 +593,92 @@ KDB_ValueHandle *KadeDB_Row_Get(const KDB_Row *row, unsigned long long index,
 }
 
 // ============================================================================
+// ROW SHALLOW HANDLE IMPLEMENTATION
+// ============================================================================
+
+KDB_RowShallow *KadeDB_RowShallow_Create(unsigned long long column_count) {
+  try {
+    return new KDB_RowShallow(static_cast<size_t>(column_count));
+  } catch (...) {
+    return nullptr;
+  }
+}
+
+void KadeDB_RowShallow_Destroy(KDB_RowShallow *row) { delete row; }
+
+KDB_RowShallow *KadeDB_RowShallow_FromRow(const KDB_Row *row) {
+  if (!row)
+    return nullptr;
+  try {
+    return new KDB_RowShallow(RowShallow::fromClones(row->impl));
+  } catch (...) {
+    return nullptr;
+  }
+}
+
+KDB_Row *KadeDB_RowShallow_ToRow(const KDB_RowShallow *row) {
+  if (!row)
+    return nullptr;
+  try {
+    return new KDB_Row(row->impl.toRowDeep());
+  } catch (...) {
+    return nullptr;
+  }
+}
+
+unsigned long long KadeDB_RowShallow_Size(const KDB_RowShallow *row) {
+  if (!row)
+    return 0ULL;
+  return static_cast<unsigned long long>(row->impl.size());
+}
+
+int KadeDB_RowShallow_Set(KDB_RowShallow *row, unsigned long long index,
+                          const KDB_ValueHandle *value, KDB_ErrorInfo *error) {
+  kadedb_clear_error(error);
+
+  if (!row) {
+    KADEDB_SET_ERROR(error, KDB_ERROR_INVALID_ARGUMENT, "RowShallow is null");
+    return 0;
+  }
+  if (!value || !value->impl) {
+    KADEDB_SET_ERROR(error, KDB_ERROR_INVALID_ARGUMENT, "Value handle is null");
+    return 0;
+  }
+  try {
+    row->impl.set(static_cast<size_t>(index),
+                  std::shared_ptr<Value>(value->impl->clone().release()));
+    return 1;
+  } catch (const std::out_of_range &e) {
+    KADEDB_SET_ERROR(error, KDB_ERROR_OUT_OF_RANGE, e.what());
+    return 0;
+  } catch (const std::exception &e) {
+    KADEDB_SET_ERROR(error, KDB_ERROR_UNKNOWN, e.what());
+    return 0;
+  }
+}
+
+KDB_ValueHandle *KadeDB_RowShallow_Get(const KDB_RowShallow *row,
+                                       unsigned long long index,
+                                       KDB_ErrorInfo *error) {
+  kadedb_clear_error(error);
+
+  if (!row) {
+    KADEDB_SET_ERROR(error, KDB_ERROR_INVALID_ARGUMENT, "RowShallow is null");
+    return nullptr;
+  }
+  try {
+    const Value &val = row->impl.at(static_cast<size_t>(index));
+    return new KDB_ValueHandle(val.clone());
+  } catch (const std::out_of_range &e) {
+    KADEDB_SET_ERROR(error, KDB_ERROR_OUT_OF_RANGE, e.what());
+    return nullptr;
+  } catch (const std::exception &e) {
+    KADEDB_SET_ERROR(error, KDB_ERROR_UNKNOWN, e.what());
+    return nullptr;
+  }
+}
+
+// ============================================================================
 // STRING MEMORY MANAGEMENT
 // ============================================================================
 
@@ -450,31 +698,11 @@ char *KadeDB_String_Duplicate(const char *str) {
 
 // ============================================================================
 // CONVENIENCE HELPERS
-// ============================================================================
-
-static std::unique_ptr<Value> from_c_value(const KDB_Value &v) {
-  switch (v.type) {
-  case KDB_VAL_NULL:
-    return ValueFactory::createNull();
-  case KDB_VAL_INTEGER:
-    return ValueFactory::createInteger(static_cast<int64_t>(v.as.i64));
-  case KDB_VAL_FLOAT:
-    return ValueFactory::createFloat(v.as.f64);
-  case KDB_VAL_STRING:
-    return ValueFactory::createString(v.as.str ? std::string(v.as.str)
-                                               : std::string());
-  case KDB_VAL_BOOLEAN:
-    return ValueFactory::createBoolean(v.as.boolean != 0);
-  default:
-    return ValueFactory::createNull();
-  }
-}
+// =========================================================================
 
 KDB_Row *kadedb_create_row_with_values(const KDB_Value *values,
                                        unsigned long long count,
                                        KDB_ErrorInfo *error) {
-  kadedb_clear_error(error);
-
   if (!values && count > 0) {
     KADEDB_SET_ERROR(error, KDB_ERROR_INVALID_ARGUMENT, "Values array is null");
     return nullptr;

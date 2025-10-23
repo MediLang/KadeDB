@@ -361,7 +361,7 @@
               "6.1"
             ],
             "details": "Implement:\n- Opaque type definitions for KadeDB_Storage, KadeDB_ResultSet, and other necessary structures\n- Constructor functions (KadeDB_CreateStorage, etc.)\n- Destructor functions (KadeDB_DestroyStorage, etc.)\n- Reference counting or other memory management mechanisms if needed\n- Error state handling for these objects",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {

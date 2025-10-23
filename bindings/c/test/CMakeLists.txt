@@ -1,0 +1,17 @@
+# C ABI tests for ffi helpers
+
+add_executable(kadedb_c_ffi_helpers_roundtrip_test
+  ffi_helpers_roundtrip_test.c
+)
+
+target_link_libraries(kadedb_c_ffi_helpers_roundtrip_test PRIVATE KadeDB::kadedb_c)
+
+add_test(NAME kadedb_c_ffi_helpers_roundtrip_test COMMAND kadedb_c_ffi_helpers_roundtrip_test)
+
+add_executable(kadedb_c_ffi_helpers_edgecases_test
+  ffi_helpers_edgecases_test.c
+)
+
+target_link_libraries(kadedb_c_ffi_helpers_edgecases_test PRIVATE KadeDB::kadedb_c)
+
+add_test(NAME kadedb_c_ffi_helpers_edgecases_test COMMAND kadedb_c_ffi_helpers_edgecases_test)

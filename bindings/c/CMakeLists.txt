@@ -42,3 +42,7 @@ install(TARGETS kadedb_c
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
+
+if(BUILD_TESTING)
+  add_subdirectory(test)
+endif()
