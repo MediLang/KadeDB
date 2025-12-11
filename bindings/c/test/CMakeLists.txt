@@ -31,3 +31,11 @@ add_executable(kadedb_c_resultset_access_test
 target_link_libraries(kadedb_c_resultset_access_test PRIVATE KadeDB::kadedb_c)
 
 add_test(NAME kadedb_c_resultset_access_test COMMAND kadedb_c_resultset_access_test)
+
+add_executable(kadedb_c_error_cases_test
+  c_error_cases_test.c
+)
+
+target_link_libraries(kadedb_c_error_cases_test PRIVATE KadeDB::kadedb_c)
+
+add_test(NAME kadedb_c_error_cases_test COMMAND kadedb_c_error_cases_test)

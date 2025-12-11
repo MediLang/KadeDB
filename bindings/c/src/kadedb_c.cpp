@@ -9,6 +9,7 @@
 #include <cmath>
 #include <cstring>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -758,6 +759,7 @@ extern "C" int KadeDB_Paginate_Bounds(unsigned long long total_rows,
 
 struct KadeDB_Storage {
   InMemoryRelationalStorage impl;
+  std::mutex mtx;
 };
 
 struct KadeDB_ResultSet {
@@ -783,6 +785,7 @@ extern "C" int KadeDB_CreateTable(KadeDB_Storage *storage, const char *table,
                                   const KDB_TableSchema *schema) {
   if (!storage || !table || !schema)
     return 0;
+  std::lock_guard<std::mutex> lock(storage->mtx);
   Status st = storage->impl.createTable(std::string{table}, schema->impl);
   return st.ok() ? 1 : 0;
 }
@@ -799,6 +802,7 @@ extern "C" int KadeDB_InsertRow(KadeDB_Storage *storage, const char *table,
     else
       r.set(static_cast<size_t>(i), from_c_value(v));
   }
+  std::lock_guard<std::mutex> lock(storage->mtx);
   Status st = storage->impl.insertRow(std::string{table}, r);
   return st.ok() ? 1 : 0;
 }
@@ -848,8 +852,10 @@ extern "C" KadeDB_ResultSet *KadeDB_ExecuteQuery(KadeDB_Storage *storage,
   std::string table = parse_select_star_from(query);
   if (table.empty())
     return nullptr;
-  auto res =
-      storage->impl.select(table, /*columns*/ {}, /*where*/ std::nullopt);
+  auto res = ([&]() {
+    std::lock_guard<std::mutex> lock(storage->mtx);
+    return storage->impl.select(table, /*columns*/ {}, /*where*/ std::nullopt);
+  })();
   if (!res.hasValue())
     return nullptr;
   try {
@@ -1050,7 +1056,10 @@ extern "C" int KadeDB_UpdateRows(KadeDB_Storage *storage, const char *table,
     asg.emplace(std::string{a.column}, std::move(av));
   }
   auto where = to_cpp_predicate(where_predicate);
-  auto res = storage->impl.updateRows(std::string{table}, asg, where);
+  auto res = ([&]() {
+    std::lock_guard<std::mutex> lock(storage->mtx);
+    return storage->impl.updateRows(std::string{table}, asg, where);
+  })();
   if (!res.hasValue())
     return 0;
   if (out_updated)
@@ -1064,7 +1073,10 @@ extern "C" int KadeDB_DeleteRows(KadeDB_Storage *storage, const char *table,
   if (!storage || !table)
     return 0;
   auto where = to_cpp_predicate(where_predicate);
-  auto res = storage->impl.deleteRows(std::string{table}, where);
+  auto res = ([&]() {
+    std::lock_guard<std::mutex> lock(storage->mtx);
+    return storage->impl.deleteRows(std::string{table}, where);
+  })();
   if (!res.hasValue())
     return 0;
   if (out_deleted)
@@ -1075,6 +1087,7 @@ extern "C" int KadeDB_DeleteRows(KadeDB_Storage *storage, const char *table,
 extern "C" int KadeDB_DropTable(KadeDB_Storage *storage, const char *table) {
   if (!storage || !table)
     return 0;
+  std::lock_guard<std::mutex> lock(storage->mtx);
   Status st = storage->impl.dropTable(std::string{table});
   return st.ok() ? 1 : 0;
 }
@@ -1083,6 +1096,7 @@ extern "C" int KadeDB_TruncateTable(KadeDB_Storage *storage,
                                     const char *table) {
   if (!storage || !table)
     return 0;
+  std::lock_guard<std::mutex> lock(storage->mtx);
   Status st = storage->impl.truncateTable(std::string{table});
   return st.ok() ? 1 : 0;
 }
@@ -1093,7 +1107,11 @@ extern "C" int KadeDB_ListTables_ToCSV(KadeDB_Storage *storage, char delimiter,
                                        unsigned long long *out_required_len) {
   if (!storage)
     return 0;
-  std::vector<std::string> names = storage->impl.listTables();
+  std::vector<std::string> names;
+  {
+    std::lock_guard<std::mutex> lock(storage->mtx);
+    names = storage->impl.listTables();
+  }
   // Build delimited string
   size_t total = 0;
   for (size_t i = 0; i < names.size(); ++i) {

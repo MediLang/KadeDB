@@ -414,7 +414,7 @@
               "6.5"
             ],
             "details": "Create tests in bindings/c/tests/ that:\n- Verify all API functions work correctly\n- Test error handling and edge cases\n- Validate memory safety (no leaks or double-frees)\n- Test thread safety if applicable\n- Include examples of typical usage patterns\n- Verify compatibility with C applications\n\nIntegrate these tests with the CMake build system.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           }
         ]
