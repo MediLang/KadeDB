@@ -73,6 +73,31 @@ typedef struct KDB_RowView {
   unsigned long long count;
 } KDB_RowView;
 
+// Simple comparison operators for predicates
+typedef enum KDB_CompareOp {
+  KDB_OP_EQ = 0,
+  KDB_OP_NE = 1,
+  KDB_OP_LT = 2,
+  KDB_OP_LE = 3,
+  KDB_OP_GT = 4,
+  KDB_OP_GE = 5,
+} KDB_CompareOp;
+
+// Minimal predicate: single-column comparison against a constant value
+typedef struct KDB_Predicate {
+  const char *column; // column name (UTF-8)
+  KDB_CompareOp op;   // comparison operator
+  KDB_Value rhs;      // right-hand side value
+} KDB_Predicate;
+
+// Assignment for UPDATE: either a constant value or copy from another column
+typedef struct KDB_Assignment {
+  const char *column;     // target column name
+  int is_column_ref;      // 0 = use constant; 1 = copy from column_ref
+  const char *column_ref; // when is_column_ref==1, source column name
+  KDB_Value constant;     // when is_column_ref==0, constant value
+} KDB_Assignment;
+
 // Column constraints for table columns (unset: min_len/max_len = -1,
 // min_value/max_value = NaN)
 typedef struct KDB_ColumnConstraints {
@@ -310,6 +335,44 @@ int KadeDB_ResultSet_NextRow(KadeDB_ResultSet *rs);
 const char *KadeDB_ResultSet_GetString(KadeDB_ResultSet *rs, int column);
 // Destroy the result set and free resources
 void KadeDB_DestroyResultSet(KadeDB_ResultSet *rs);
+
+// ---- Additional CRUD and schema utilities ----
+
+// Update rows by assigning to one or more columns, optionally filtered by a
+// predicate.
+// - assignments: array of KDB_Assignment entries (>=1)
+// - where_predicate: optional; pass NULL to update all rows
+// - out_updated: optional; set to number of rows updated
+// Returns 1 on success; 0 on error.
+int KadeDB_UpdateRows(KadeDB_Storage *storage, const char *table,
+                      const KDB_Assignment *assignments,
+                      unsigned long long assignment_count,
+                      const KDB_Predicate *where_predicate,
+                      unsigned long long *out_updated);
+
+// Delete rows optionally filtered by a predicate. If where_predicate is NULL,
+// deletes all rows. Returns 1 on success; 0 on error. Writes deleted count to
+// out_deleted when non-NULL.
+int KadeDB_DeleteRows(KadeDB_Storage *storage, const char *table,
+                      const KDB_Predicate *where_predicate,
+                      unsigned long long *out_deleted);
+
+// Drop an entire table (schema and data). Returns 1 on success; 0 on error.
+int KadeDB_DropTable(KadeDB_Storage *storage, const char *table);
+
+// Truncate a table (delete all rows, keep schema). Returns 1 on success; 0 on
+// error.
+int KadeDB_TruncateTable(KadeDB_Storage *storage, const char *table);
+
+// List tables as a delimited single-line string (e.g., comma-separated).
+// - delimiter: character to separate names (e.g., ',')
+// - out_buf/out_buf_len: optional output buffer; may be NULL to query required
+// length
+// - out_required_len: when non-NULL, set to required byte length including NUL
+// Returns 1 on success.
+int KadeDB_ListTables_ToCSV(KadeDB_Storage *storage, char delimiter,
+                            char *out_buf, unsigned long long out_buf_len,
+                            unsigned long long *out_required_len);
 
 #ifdef __cplusplus
 }

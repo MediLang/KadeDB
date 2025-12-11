@@ -373,7 +373,7 @@
               "6.2"
             ],
             "details": "Implement C functions for:\n- Table creation (KadeDB_CreateTable)\n- Data insertion (KadeDB_InsertRow)\n- Data retrieval (KadeDB_ExecuteQuery)\n- Data update operations\n- Data deletion operations\n- Schema manipulation functions\n\nEnsure proper error handling and memory safety.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {

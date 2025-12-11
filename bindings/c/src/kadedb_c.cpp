@@ -9,6 +9,7 @@
 #include <cmath>
 #include <cstring>
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
 
@@ -20,6 +21,8 @@ static std::unique_ptr<Value> from_c_value(const KDB_Value &v);
 static Column make_cpp_column_from_c_ex(const KDB_TableColumnEx &cex);
 static Column make_cpp_column_from_c(const KDB_TableColumn &c);
 static Column make_cpp_column_from_ex_ptr(const KDB_TableColumnEx *cex);
+static Predicate::Op to_cpp_op(KDB_CompareOp op);
+static std::optional<Predicate> to_cpp_predicate(const KDB_Predicate *p);
 
 // Define wrapper structs before use
 struct KDB_DocumentSchema {
@@ -226,6 +229,35 @@ static std::unique_ptr<Value> from_c_value(const KDB_Value &v) {
     return ValueFactory::createBoolean(v.as.boolean != 0);
   }
   return ValueFactory::createNull();
+}
+
+static Predicate::Op to_cpp_op(KDB_CompareOp op) {
+  switch (op) {
+  case KDB_OP_EQ:
+    return Predicate::Op::Eq;
+  case KDB_OP_NE:
+    return Predicate::Op::Ne;
+  case KDB_OP_LT:
+    return Predicate::Op::Lt;
+  case KDB_OP_LE:
+    return Predicate::Op::Le;
+  case KDB_OP_GT:
+    return Predicate::Op::Gt;
+  case KDB_OP_GE:
+    return Predicate::Op::Ge;
+  }
+  return Predicate::Op::Eq;
+}
+
+static std::optional<Predicate> to_cpp_predicate(const KDB_Predicate *p) {
+  if (!p || !p->column)
+    return std::nullopt;
+  Predicate pred;
+  pred.kind = Predicate::Kind::Comparison;
+  pred.column = std::string{p->column};
+  pred.op = to_cpp_op(p->op);
+  pred.rhs = from_c_value(p->rhs);
+  return pred;
 }
 
 // Expose make_cpp_column_from_c_ex with C++ linkage (used by other helpers)
@@ -856,3 +888,106 @@ extern "C" const char *KadeDB_ResultSet_GetString(KadeDB_ResultSet *rs,
 }
 
 extern "C" void KadeDB_DestroyResultSet(KadeDB_ResultSet *rs) { delete rs; }
+
+extern "C" int KadeDB_UpdateRows(KadeDB_Storage *storage, const char *table,
+                                 const KDB_Assignment *assignments,
+                                 unsigned long long assignment_count,
+                                 const KDB_Predicate *where_predicate,
+                                 unsigned long long *out_updated) {
+  if (!storage || !table || !assignments || assignment_count == 0ULL)
+    return 0;
+  std::unordered_map<std::string, AssignmentValue> asg;
+  asg.reserve(static_cast<size_t>(assignment_count));
+  for (unsigned long long i = 0; i < assignment_count; ++i) {
+    const KDB_Assignment &a = assignments[i];
+    if (!a.column)
+      return 0;
+    AssignmentValue av;
+    if (a.is_column_ref != 0) {
+      if (!a.column_ref)
+        return 0;
+      av.kind = AssignmentValue::Kind::ColumnRef;
+      av.column_ref = std::string{a.column_ref};
+    } else {
+      av.kind = AssignmentValue::Kind::Constant;
+      av.constant = from_c_value(a.constant);
+    }
+    asg.emplace(std::string{a.column}, std::move(av));
+  }
+  auto where = to_cpp_predicate(where_predicate);
+  auto res = storage->impl.updateRows(std::string{table}, asg, where);
+  if (!res.hasValue())
+    return 0;
+  if (out_updated)
+    *out_updated = static_cast<unsigned long long>(res.value());
+  return 1;
+}
+
+extern "C" int KadeDB_DeleteRows(KadeDB_Storage *storage, const char *table,
+                                 const KDB_Predicate *where_predicate,
+                                 unsigned long long *out_deleted) {
+  if (!storage || !table)
+    return 0;
+  auto where = to_cpp_predicate(where_predicate);
+  auto res = storage->impl.deleteRows(std::string{table}, where);
+  if (!res.hasValue())
+    return 0;
+  if (out_deleted)
+    *out_deleted = static_cast<unsigned long long>(res.value());
+  return 1;
+}
+
+extern "C" int KadeDB_DropTable(KadeDB_Storage *storage, const char *table) {
+  if (!storage || !table)
+    return 0;
+  Status st = storage->impl.dropTable(std::string{table});
+  return st.ok() ? 1 : 0;
+}
+
+extern "C" int KadeDB_TruncateTable(KadeDB_Storage *storage,
+                                    const char *table) {
+  if (!storage || !table)
+    return 0;
+  Status st = storage->impl.truncateTable(std::string{table});
+  return st.ok() ? 1 : 0;
+}
+
+extern "C" int KadeDB_ListTables_ToCSV(KadeDB_Storage *storage, char delimiter,
+                                       char *out_buf,
+                                       unsigned long long out_buf_len,
+                                       unsigned long long *out_required_len) {
+  if (!storage)
+    return 0;
+  std::vector<std::string> names = storage->impl.listTables();
+  // Build delimited string
+  size_t total = 0;
+  for (size_t i = 0; i < names.size(); ++i) {
+    total += names[i].size();
+    if (i + 1 < names.size())
+      total += 1; // delimiter
+  }
+  unsigned long long need = static_cast<unsigned long long>(total) + 1ULL;
+  if (out_required_len)
+    *out_required_len = need;
+  if (!out_buf || out_buf_len == 0)
+    return 1;
+  unsigned long long ncopy =
+      (need <= out_buf_len) ? (need - 1ULL) : (out_buf_len - 1ULL);
+  // Write with truncation if needed
+  unsigned long long written = 0;
+  for (size_t i = 0; i < names.size(); ++i) {
+    const std::string &s = names[i];
+    for (char c : s) {
+      if (written >= ncopy)
+        break;
+      out_buf[written++] = c;
+    }
+    if (i + 1 < names.size() && written < ncopy) {
+      out_buf[written++] = delimiter;
+    }
+    if (written >= ncopy)
+      break;
+  }
+  out_buf[written] = '\0';
+  return 1;
+}

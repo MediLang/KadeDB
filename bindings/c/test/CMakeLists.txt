@@ -15,3 +15,11 @@ add_executable(kadedb_c_ffi_helpers_edgecases_test
 target_link_libraries(kadedb_c_ffi_helpers_edgecases_test PRIVATE KadeDB::kadedb_c)
 
 add_test(NAME kadedb_c_ffi_helpers_edgecases_test COMMAND kadedb_c_ffi_helpers_edgecases_test)
+
+add_executable(kadedb_c_crud_bindings_test
+  crud_bindings_test.c
+)
+
+target_link_libraries(kadedb_c_crud_bindings_test PRIVATE KadeDB::kadedb_c)
+
+add_test(NAME kadedb_c_crud_bindings_test COMMAND kadedb_c_crud_bindings_test)
