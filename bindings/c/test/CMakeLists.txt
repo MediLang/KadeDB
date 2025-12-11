@@ -23,3 +23,11 @@ add_executable(kadedb_c_crud_bindings_test
 target_link_libraries(kadedb_c_crud_bindings_test PRIVATE KadeDB::kadedb_c)
 
 add_test(NAME kadedb_c_crud_bindings_test COMMAND kadedb_c_crud_bindings_test)
+
+add_executable(kadedb_c_resultset_access_test
+  resultset_access_test.c
+)
+
+target_link_libraries(kadedb_c_resultset_access_test PRIVATE KadeDB::kadedb_c)
+
+add_test(NAME kadedb_c_resultset_access_test COMMAND kadedb_c_resultset_access_test)

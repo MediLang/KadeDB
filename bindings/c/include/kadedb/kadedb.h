@@ -333,6 +333,29 @@ int KadeDB_ResultSet_NextRow(KadeDB_ResultSet *rs);
 // Get a string representation of the current row's column; returns NULL on
 // error
 const char *KadeDB_ResultSet_GetString(KadeDB_ResultSet *rs, int column);
+// Reset the ResultSet cursor to before the first row; returns 1 on success
+int KadeDB_ResultSet_Reset(KadeDB_ResultSet *rs);
+
+// Column metadata access
+// Returns number of columns or -1 on error
+int KadeDB_ResultSet_ColumnCount(KadeDB_ResultSet *rs);
+// Returns column name for index or NULL on error; pointer is valid until the
+// next API call on the same ResultSet
+const char *KadeDB_ResultSet_GetColumnName(KadeDB_ResultSet *rs, int column);
+// Returns KDB_ColumnType as int for index or -1 on error
+int KadeDB_ResultSet_GetColumnType(KadeDB_ResultSet *rs, int column);
+// Finds column by name; returns index or -1 if not found/error
+int KadeDB_ResultSet_FindColumn(KadeDB_ResultSet *rs, const char *name);
+
+// Typed getters for current row; when ok!=NULL, sets *ok to 1 on success, 0
+// on error
+long long KadeDB_ResultSet_GetInt64(KadeDB_ResultSet *rs, int column, int *ok);
+double KadeDB_ResultSet_GetDouble(KadeDB_ResultSet *rs, int column, int *ok);
+int KadeDB_ResultSet_GetBool(KadeDB_ResultSet *rs, int column, int *ok);
+
+// Returns last error string for this ResultSet, or NULL if none; pointer is
+// valid until the next API call on the same ResultSet
+const char *KadeDB_ResultSet_GetLastError(KadeDB_ResultSet *rs);
 // Destroy the result set and free resources
 void KadeDB_DestroyResultSet(KadeDB_ResultSet *rs);
 

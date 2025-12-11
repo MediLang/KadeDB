@@ -764,6 +764,7 @@ struct KadeDB_ResultSet {
   std::unique_ptr<ResultSet> impl;
   size_t cursor = static_cast<size_t>(-1);
   std::string scratch;
+  std::string last_error;
 };
 
 extern "C" KadeDB_Storage *KadeDB_CreateStorage() {
@@ -888,6 +889,140 @@ extern "C" const char *KadeDB_ResultSet_GetString(KadeDB_ResultSet *rs,
 }
 
 extern "C" void KadeDB_DestroyResultSet(KadeDB_ResultSet *rs) { delete rs; }
+
+extern "C" int KadeDB_ResultSet_Reset(KadeDB_ResultSet *rs) {
+  if (!rs || !rs->impl)
+    return 0;
+  rs->cursor = static_cast<size_t>(-1);
+  rs->last_error.clear();
+  return 1;
+}
+
+extern "C" int KadeDB_ResultSet_ColumnCount(KadeDB_ResultSet *rs) {
+  if (!rs || !rs->impl)
+    return -1;
+  try {
+    return static_cast<int>(rs->impl->columnCount());
+  } catch (...) {
+    return -1;
+  }
+}
+
+extern "C" const char *KadeDB_ResultSet_GetColumnName(KadeDB_ResultSet *rs,
+                                                      int column) {
+  if (!rs || !rs->impl || column < 0)
+    return nullptr;
+  size_t col = static_cast<size_t>(column);
+  if (col >= rs->impl->columnCount())
+    return nullptr;
+  try {
+    rs->scratch = rs->impl->columnNames().at(col);
+    return rs->scratch.c_str();
+  } catch (...) {
+    return nullptr;
+  }
+}
+
+extern "C" int KadeDB_ResultSet_GetColumnType(KadeDB_ResultSet *rs,
+                                              int column) {
+  if (!rs || !rs->impl || column < 0)
+    return -1;
+  size_t col = static_cast<size_t>(column);
+  if (col >= rs->impl->columnCount())
+    return -1;
+  try {
+    ColumnType ct = rs->impl->columnTypes().at(col);
+    return static_cast<int>(ct);
+  } catch (...) {
+    return -1;
+  }
+}
+
+extern "C" int KadeDB_ResultSet_FindColumn(KadeDB_ResultSet *rs,
+                                           const char *name) {
+  if (!rs || !rs->impl || !name)
+    return -1;
+  try {
+    size_t idx = rs->impl->findColumn(std::string{name});
+    if (idx == ResultSet::npos)
+      return -1;
+    return static_cast<int>(idx);
+  } catch (...) {
+    return -1;
+  }
+}
+
+extern "C" long long KadeDB_ResultSet_GetInt64(KadeDB_ResultSet *rs, int column,
+                                               int *ok) {
+  if (ok)
+    *ok = 0;
+  if (!rs || !rs->impl || rs->cursor >= rs->impl->rowCount() || column < 0)
+    return 0;
+  size_t col = static_cast<size_t>(column);
+  if (col >= rs->impl->columnCount())
+    return 0;
+  try {
+    long long v = rs->impl->at(rs->cursor, col).asInt();
+    if (ok)
+      *ok = 1;
+    return v;
+  } catch (const std::exception &e) {
+    rs->last_error = e.what();
+  } catch (...) {
+    rs->last_error = "unknown error";
+  }
+  return 0;
+}
+
+extern "C" double KadeDB_ResultSet_GetDouble(KadeDB_ResultSet *rs, int column,
+                                             int *ok) {
+  if (ok)
+    *ok = 0;
+  if (!rs || !rs->impl || rs->cursor >= rs->impl->rowCount() || column < 0)
+    return 0.0;
+  size_t col = static_cast<size_t>(column);
+  if (col >= rs->impl->columnCount())
+    return 0.0;
+  try {
+    double v = rs->impl->at(rs->cursor, col).asFloat();
+    if (ok)
+      *ok = 1;
+    return v;
+  } catch (const std::exception &e) {
+    rs->last_error = e.what();
+  } catch (...) {
+    rs->last_error = "unknown error";
+  }
+  return 0.0;
+}
+
+extern "C" int KadeDB_ResultSet_GetBool(KadeDB_ResultSet *rs, int column,
+                                        int *ok) {
+  if (ok)
+    *ok = 0;
+  if (!rs || !rs->impl || rs->cursor >= rs->impl->rowCount() || column < 0)
+    return 0;
+  size_t col = static_cast<size_t>(column);
+  if (col >= rs->impl->columnCount())
+    return 0;
+  try {
+    int v = rs->impl->at(rs->cursor, col).asBool() ? 1 : 0;
+    if (ok)
+      *ok = 1;
+    return v;
+  } catch (const std::exception &e) {
+    rs->last_error = e.what();
+  } catch (...) {
+    rs->last_error = "unknown error";
+  }
+  return 0;
+}
+
+extern "C" const char *KadeDB_ResultSet_GetLastError(KadeDB_ResultSet *rs) {
+  if (!rs)
+    return nullptr;
+  return rs->last_error.empty() ? nullptr : rs->last_error.c_str();
+}
 
 extern "C" int KadeDB_UpdateRows(KadeDB_Storage *storage, const char *table,
                                  const KDB_Assignment *assignments,

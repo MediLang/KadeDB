@@ -385,7 +385,7 @@
               "6.3"
             ],
             "details": "Create functions for:\n- Result set navigation (KadeDB_ResultSet_NextRow, KadeDB_ResultSet_Reset)\n- Data access by type (KadeDB_ResultSet_GetString, KadeDB_ResultSet_GetInt, etc.)\n- Column information retrieval (name, type, index)\n- Error state checking\n- Result set metadata access\n\nEnsure proper memory management and type safety.",
-            "status": "pending",
+            "status": "in-progress",
             "testStrategy": ""
           },
           {
