@@ -385,7 +385,7 @@
               "6.3"
             ],
             "details": "Create functions for:\n- Result set navigation (KadeDB_ResultSet_NextRow, KadeDB_ResultSet_Reset)\n- Data access by type (KadeDB_ResultSet_GetString, KadeDB_ResultSet_GetInt, etc.)\n- Column information retrieval (name, type, index)\n- Error state checking\n- Result set metadata access\n\nEnsure proper memory management and type safety.",
-            "status": "in-progress",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -399,7 +399,7 @@
               "6.4"
             ],
             "details": "Implement the C++ side of the bindings in bindings/c/src/:\n- Create wrapper classes that implement the opaque C types\n- Implement all C API functions to call the corresponding C++ core functions\n- Handle memory management and object lifetime\n- Implement proper error translation between C++ exceptions and C error codes\n- Ensure thread safety where appropriate",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
