@@ -9,7 +9,15 @@ int main(void) {
   const char *key = "hello";
   const char *val = "world";
 
-  kadedb_lite_t *db = kadedb_lite_open(path);
+  kadedb_lite_options_t *opts = kadedb_lite_options_create();
+  if (!opts) {
+    fprintf(stderr, "kadedb_lite_options_create failed\n");
+    return 1;
+  }
+  kadedb_lite_options_set_create_if_missing(opts, 1);
+
+  kadedb_lite_t *db = kadedb_lite_open_with_options(path, opts);
+  kadedb_lite_options_destroy(opts);
   if (!db) {
     fprintf(stderr, "kadedb_lite_open failed\n");
     return 1;
@@ -32,7 +40,9 @@ int main(void) {
   }
 
   // Accept either stub or round-trip value depending on build flags
+  int allow_stub = 0;
   if (strcmp(out, "stub") == 0) {
+    allow_stub = 1;
     printf("Lite smoke: stub mode value = %s\n", out);
   } else if (strcmp(out, val) == 0) {
     printf("Lite smoke: rocksdb mode value = %s\n", out);
@@ -44,6 +54,26 @@ int main(void) {
   }
 
   kadedb_lite_free(out);
+
+  rc = kadedb_lite_delete(db, key);
+  if (rc != 0) {
+    fprintf(stderr, "kadedb_lite_delete failed\n");
+    kadedb_lite_close(db);
+    return 5;
+  }
+
+  out = NULL;
+  out_len = 0;
+  rc = kadedb_lite_get(db, key, &out, &out_len);
+  if (!allow_stub && rc == 0) {
+    fprintf(stderr, "Expected key to be deleted but got value\n");
+    kadedb_lite_free(out);
+    kadedb_lite_close(db);
+    return 6;
+  }
+  if (out)
+    kadedb_lite_free(out);
+
   kadedb_lite_close(db);
   return 0;
 }
