@@ -486,7 +486,7 @@
         "dependencies": [
           7
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -494,7 +494,7 @@
             "description": "Create a minimal query parser that can parse basic SELECT and INSERT operations for KadeDB-Lite.",
             "dependencies": [],
             "details": "Implement the `parse_query()` function that can:\n1. Tokenize input query strings\n2. Identify query type (SELECT or INSERT)\n3. Extract table names and basic conditions\n4. Parse column names and values\n5. Return a properly structured `parsed_query_t` object\n\nEnsure proper error handling for malformed queries and memory management for parsed components.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -505,7 +505,7 @@
               "8.1"
             ],
             "details": "Complete the `kadedb_lite_execute_query()` function to:\n1. Handle SELECT queries by translating them to RocksDB get/iterate operations\n2. Handle INSERT queries by translating them to RocksDB put operations\n3. Implement proper result set creation and management\n4. Add error handling for database operations\n5. Ensure proper memory management for query results",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -517,7 +517,7 @@
               "8.2"
             ],
             "details": "Create test cases that:\n1. Test basic SELECT queries with various conditions\n2. Test INSERT operations with different data types\n3. Verify error handling for malformed queries\n4. Test edge cases like empty tables or non-existent tables\n5. Verify memory management (no leaks) during query execution\n6. Test performance with larger datasets",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           }
         ]
