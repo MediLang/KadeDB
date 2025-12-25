@@ -52,6 +52,7 @@ endif()
 add_library(kadedb_lite ${LIB_TYPE}
   src/kadedb_lite.c
   src/kadedb_lite_query.c
+  src/kadedb_lite_sync.c
 )
 
 add_library(KadeDB::kadedb_lite ALIAS kadedb_lite)

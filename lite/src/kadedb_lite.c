@@ -1,32 +1,9 @@
 #include "kadedb_lite/kadedb_lite.h"
+
+#include "kadedb_lite_internal.h"
+
 #include <stdlib.h>
 #include <string.h>
-
-#ifdef KADEDB_LITE_HAS_ROCKSDB
-#include <rocksdb/c.h>
-#endif
-
-struct kadedb_lite_options_t {
-  int create_if_missing;
-  int error_if_exists;
-  kadedb_lite_compression_t compression;
-  size_t cache_size_bytes;
-  size_t write_buffer_size_bytes;
-  int max_open_files;
-};
-
-struct kadedb_lite_t {
-#ifdef KADEDB_LITE_HAS_ROCKSDB
-  rocksdb_t *db;
-  rocksdb_options_t *options;
-  rocksdb_readoptions_t *ropts;
-  rocksdb_writeoptions_t *wopts;
-  rocksdb_cache_t *cache;
-  rocksdb_block_based_table_options_t *bbt_opts;
-#else
-  int placeholder;
-#endif
-};
 
 kadedb_lite_options_t *kadedb_lite_options_create(void) {
   kadedb_lite_options_t *opts =
@@ -188,6 +165,13 @@ kadedb_lite_open_with_options(const char *path,
     free(h);
     return NULL;
   }
+
+  h->sync_initialized = 0;
+  h->sync_running = 0;
+  h->sync_interval_seconds = 0;
+  h->sync_remote_url = NULL;
+  h->sync_auth_token = NULL;
+
   return h;
 #else
   (void)opts;
@@ -195,6 +179,15 @@ kadedb_lite_open_with_options(const char *path,
   kadedb_lite_t *db = (kadedb_lite_t *)malloc(sizeof(kadedb_lite_t));
   if (db)
     db->placeholder = 0;
+
+  if (db) {
+    db->sync_initialized = 0;
+    db->sync_running = 0;
+    db->sync_interval_seconds = 0;
+    db->sync_remote_url = NULL;
+    db->sync_auth_token = NULL;
+  }
+
   return db;
 #endif
 }
@@ -202,6 +195,16 @@ kadedb_lite_open_with_options(const char *path,
 void kadedb_lite_close(kadedb_lite_t *db) {
   if (!db)
     return;
+
+  if (db->sync_remote_url) {
+    free(db->sync_remote_url);
+    db->sync_remote_url = NULL;
+  }
+  if (db->sync_auth_token) {
+    free(db->sync_auth_token);
+    db->sync_auth_token = NULL;
+  }
+
 #ifdef KADEDB_LITE_HAS_ROCKSDB
   if (db->ropts)
     rocksdb_readoptions_destroy(db->ropts);
