@@ -415,4 +415,104 @@ std::string SchemaValidator::validateUnique(const DocumentSchema &schema,
   return {};
 }
 
+// ----- TimeSeriesSchema implementation -----
+
+TimeSeriesSchema::TimeSeriesSchema(std::string timestampColumn,
+                                   TimeGranularity granularity)
+    : timestampColumn_(std::move(timestampColumn)), granularity_(granularity) {}
+
+bool TimeSeriesSchema::addValueColumn(const Column &col) {
+  if (valueIndexByName_.find(col.name) != valueIndexByName_.end()) {
+    return false;
+  }
+  valueColumns_.push_back(col);
+  valueIndexByName_.emplace(col.name, valueColumns_.size() - 1);
+  return true;
+}
+
+bool TimeSeriesSchema::removeValueColumn(const std::string &name) {
+  auto it = valueIndexByName_.find(name);
+  if (it == valueIndexByName_.end())
+    return false;
+  size_t idx = it->second;
+  valueColumns_.erase(valueColumns_.begin() + static_cast<std::ptrdiff_t>(idx));
+  valueIndexByName_.clear();
+  valueIndexByName_.reserve(valueColumns_.size());
+  for (size_t i = 0; i < valueColumns_.size(); ++i) {
+    valueIndexByName_.emplace(valueColumns_[i].name, i);
+  }
+  return true;
+}
+
+bool TimeSeriesSchema::getValueColumn(const std::string &name,
+                                      Column &out) const {
+  auto it = valueIndexByName_.find(name);
+  if (it == valueIndexByName_.end())
+    return false;
+  out = valueColumns_[it->second];
+  return true;
+}
+
+size_t TimeSeriesSchema::findValueColumn(const std::string &name) const {
+  auto it = valueIndexByName_.find(name);
+  return it == valueIndexByName_.end() ? npos : it->second;
+}
+
+bool TimeSeriesSchema::addTagColumn(const Column &col) {
+  if (tagIndexByName_.find(col.name) != tagIndexByName_.end()) {
+    return false;
+  }
+  tagColumns_.push_back(col);
+  tagIndexByName_.emplace(col.name, tagColumns_.size() - 1);
+  return true;
+}
+
+bool TimeSeriesSchema::removeTagColumn(const std::string &name) {
+  auto it = tagIndexByName_.find(name);
+  if (it == tagIndexByName_.end())
+    return false;
+  size_t idx = it->second;
+  tagColumns_.erase(tagColumns_.begin() + static_cast<std::ptrdiff_t>(idx));
+  tagIndexByName_.clear();
+  tagIndexByName_.reserve(tagColumns_.size());
+  for (size_t i = 0; i < tagColumns_.size(); ++i) {
+    tagIndexByName_.emplace(tagColumns_[i].name, i);
+  }
+  return true;
+}
+
+bool TimeSeriesSchema::getTagColumn(const std::string &name,
+                                    Column &out) const {
+  auto it = tagIndexByName_.find(name);
+  if (it == tagIndexByName_.end())
+    return false;
+  out = tagColumns_[it->second];
+  return true;
+}
+
+size_t TimeSeriesSchema::findTagColumn(const std::string &name) const {
+  auto it = tagIndexByName_.find(name);
+  return it == tagIndexByName_.end() ? npos : it->second;
+}
+
+std::vector<Column> TimeSeriesSchema::allColumns() const {
+  std::vector<Column> all;
+  all.reserve(1 + tagColumns_.size() + valueColumns_.size());
+  // Timestamp column (always Integer type for epoch time)
+  Column tsCol;
+  tsCol.name = timestampColumn_;
+  tsCol.type = ColumnType::Integer;
+  tsCol.nullable = false;
+  all.push_back(tsCol);
+  // Tag columns
+  for (const auto &c : tagColumns_) {
+    all.push_back(c);
+  }
+  // Value columns
+  for (const auto &c : valueColumns_) {
+    all.push_back(c);
+  }
+  return all;
+}
+
 } // namespace kadedb

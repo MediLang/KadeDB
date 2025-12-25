@@ -290,4 +290,88 @@ private:
                                std::string &err);
 };
 
+// Time granularity for time-series data
+enum class TimeGranularity {
+  Nanoseconds,
+  Microseconds,
+  Milliseconds,
+  Seconds,
+  Minutes,
+  Hours,
+  Days
+};
+
+// Retention policy for time-series data
+struct RetentionPolicy {
+  // Time-to-live in seconds (0 = no expiration)
+  uint64_t ttlSeconds = 0;
+  // Maximum number of rows (0 = unlimited)
+  size_t maxRows = 0;
+  // Whether to drop oldest rows when maxRows exceeded
+  bool dropOldest = true;
+};
+
+// Schema for time-series storage
+// Defines a timestamp column, value columns, and optional tag columns for
+// efficient time-based queries and aggregations.
+class TimeSeriesSchema {
+public:
+  TimeSeriesSchema() = default;
+
+  // Construct with timestamp column name and granularity
+  explicit TimeSeriesSchema(
+      std::string timestampColumn,
+      TimeGranularity granularity = TimeGranularity::Milliseconds);
+
+  // Copy/move semantics (value-type)
+  TimeSeriesSchema(const TimeSeriesSchema &) = default;
+  TimeSeriesSchema(TimeSeriesSchema &&) noexcept = default;
+  TimeSeriesSchema &operator=(const TimeSeriesSchema &) = default;
+  TimeSeriesSchema &operator=(TimeSeriesSchema &&) noexcept = default;
+
+  // Timestamp column
+  const std::string &timestampColumn() const { return timestampColumn_; }
+  void setTimestampColumn(std::string name) {
+    timestampColumn_ = std::move(name);
+  }
+
+  // Time granularity
+  TimeGranularity granularity() const { return granularity_; }
+  void setGranularity(TimeGranularity g) { granularity_ = g; }
+
+  // Value columns (numeric data to store)
+  const std::vector<Column> &valueColumns() const { return valueColumns_; }
+  bool addValueColumn(const Column &col);
+  bool removeValueColumn(const std::string &name);
+  bool getValueColumn(const std::string &name, Column &out) const;
+  size_t findValueColumn(const std::string &name) const;
+
+  // Tag columns (categorical/string columns for grouping/filtering)
+  const std::vector<Column> &tagColumns() const { return tagColumns_; }
+  bool addTagColumn(const Column &col);
+  bool removeTagColumn(const std::string &name);
+  bool getTagColumn(const std::string &name, Column &out) const;
+  size_t findTagColumn(const std::string &name) const;
+
+  // Retention policy
+  const RetentionPolicy &retentionPolicy() const { return retention_; }
+  void setRetentionPolicy(const RetentionPolicy &policy) {
+    retention_ = policy;
+  }
+
+  // Convenience: get all columns (timestamp + tags + values) for validation
+  std::vector<Column> allColumns() const;
+
+  static constexpr size_t npos = static_cast<size_t>(-1);
+
+private:
+  std::string timestampColumn_ = "timestamp";
+  TimeGranularity granularity_ = TimeGranularity::Milliseconds;
+  std::vector<Column> valueColumns_;
+  std::unordered_map<std::string, size_t> valueIndexByName_;
+  std::vector<Column> tagColumns_;
+  std::unordered_map<std::string, size_t> tagIndexByName_;
+  RetentionPolicy retention_;
+};
+
 } // namespace kadedb

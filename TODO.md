@@ -29,10 +29,10 @@ This file tracks discrepancies between the README claims and the current codebas
 
 #### 1. Time-Series Storage Model
 
-- [ ] **Design time-series schema**
-  - [ ] Define `TimeSeriesSchema` class with timestamp column, value columns, and optional tags
-  - [ ] Support configurable time granularity (nanoseconds, milliseconds, seconds)
-  - [ ] Design retention policies (TTL, max rows)
+- [x] **Design time-series schema**
+  - [x] Define `TimeSeriesSchema` class with timestamp column, value columns, and optional tags
+  - [x] Support configurable time granularity (nanoseconds, milliseconds, seconds)
+  - [x] Design retention policies (TTL, max rows)
 - [ ] **Implement time-series storage engine**
   - [ ] Create `TimeSeriesStorage` class in `cpp/include/kadedb/timeseries/`
   - [ ] Implement time-partitioned storage (hourly/daily buckets)
