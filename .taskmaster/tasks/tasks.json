@@ -568,7 +568,7 @@
           8,
           9
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -576,7 +576,7 @@
             "description": "Create a simple C++ application demonstrating the usage of KadeDB core API",
             "dependencies": [],
             "details": "Develop a C++ example in `examples/cpp_example/` that demonstrates:\n- Database creation and opening\n- Basic CRUD operations using the core API\n- Query execution with KadeQL\n- Error handling\n\nThe example should be well-commented to serve as a tutorial for new users. Include a CMakeLists.txt file to build the example and document how to run it in a README.md file.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -587,7 +587,7 @@
               "10.1"
             ],
             "details": "Develop a C example in `examples/c_example/` that demonstrates:\n- Database initialization using the C ABI\n- Basic CRUD operations through the C interface\n- Memory management with proper cleanup\n- Error handling\n\nEnsure the example is well-commented and includes a Makefile or CMakeLists.txt for building. Document usage instructions in a README.md file.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -599,7 +599,7 @@
               "10.2"
             ],
             "details": "Complete the implementation of the KadeDB-Lite CLI in `examples/lite_cli/`:\n- Implement the result display functionality\n- Add command history and basic line editing\n- Support for help commands and documentation\n- Add basic data import/export commands\n\nExtend the provided skeleton code to create a fully functional CLI. Include a CMakeLists.txt file and documentation on how to build and use the CLI.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           },
           {
@@ -612,7 +612,7 @@
               "10.3"
             ],
             "details": "Set up GitHub Actions or similar CI system with the following jobs:\n- Linux build and test (Ubuntu latest)\n- macOS build and test\n- Windows build and test\n- Code coverage reporting\n- Example application builds\n\nEnsure the CI configuration includes:\n- Caching of dependencies to speed up builds\n- Matrix builds for different compiler versions\n- Automated unit test execution\n- Building and testing all example applications\n- Proper reporting of test results",
-            "status": "pending",
+            "status": "done",
             "testStrategy": ""
           }
         ]

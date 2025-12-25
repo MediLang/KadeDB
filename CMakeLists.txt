@@ -95,6 +95,7 @@ configure_file(${KADEDB_VERSION_HEADER_INPUT}
 add_subdirectory(cpp)
 add_subdirectory(bindings/c)
 add_subdirectory(lite)
+add_subdirectory(examples)
 
 # Tests
 if(BUILD_TESTING)
