@@ -15,8 +15,8 @@
 - API Reference (Doxygen groups): `StorageAPI`, `DocumentAPI`, `PredicateBuilder`
 - Examples: `cpp/examples/`
 - Tests: `cpp/test/`
- - Troubleshooting: `docs/sphinx/guides/troubleshooting.md`
- - Contributing: `docs/sphinx/guides/contributing.md`
+- Troubleshooting: `docs/sphinx/guides/troubleshooting.md`
+- Contributing: `docs/sphinx/guides/contributing.md`
 
 ## Overview
 
@@ -34,6 +34,7 @@ Optimized for high-performance computing (HPC) on servers and edge nodes, KadeDB
 - **KadeDB Core (C++)**: High-performance engine with GPU acceleration and distributed scalability for compute-intensive analytics and storage internals.
 - **KadeDB Services (Rust)**: Secure, async service layer (REST/gRPC), connectors, auth/RBAC, and orchestration built with Rust for memory safety and reliability.
 - **KadeDB-Lite (C)**: Minimal footprint client for IoT/wearables with RocksDB-based embedded storage and low-bandwidth syncing.
+- **C ABI Bindings**: Stable C interface (`bindings/c/`) for FFI integration with other languages (Python, Rust, etc.).
 
 > Note: This README provides a high-level overview. Full developer documentation, API reference, and detailed guides now live under `docs/` for GitHub Pages and Sphinx.
 
@@ -49,7 +50,7 @@ cmake -S . --preset debug
 cmake --build --preset debug -j
 
 # Run tests
-ctest --output-on-failure
+ctest --test-dir build --output-on-failure
 ```
 
 ## Testing and Coverage
@@ -82,8 +83,11 @@ cmake --build build/debug --target coverage
 
 Explore examples:
 
-- `cpp/examples/inmemory_rel_example.cpp`
-- `cpp/examples/inmemory_rel_errors_example.cpp`
+- `cpp/examples/inmemory_rel_example.cpp` – in-memory relational storage
+- `cpp/examples/inmemory_rel_errors_example.cpp` – error handling demo
+- `examples/cpp_example/` – standalone C++ core API example
+- `examples/c_example/` – C ABI example
+- `examples/lite_cli/` – interactive KadeDB-Lite CLI
 
 Key tests:
 
@@ -105,6 +109,7 @@ Local docs build (optional):
 doxygen docs/Doxyfile
 sphinx-build -b html docs/sphinx docs/sphinx/_build/html
 ```
+
 ## Architecture and Design
 
 Detailed architecture, language rationale, industry guides, roadmaps, and API surfaces are documented on the docs site.
