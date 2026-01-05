@@ -15,6 +15,7 @@ add_library(kadedb_core ${LIB_TYPE}
   src/core/schema.cpp
   src/core/serialization.cpp
   src/core/storage.cpp
+  src/core/timeseries_storage.cpp
   src/core/kadeql_tokenizer.cpp
   src/core/kadeql_ast.cpp
   src/core/kadeql_parser.cpp

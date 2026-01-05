@@ -33,11 +33,11 @@ This file tracks discrepancies between the README claims and the current codebas
   - [x] Define `TimeSeriesSchema` class with timestamp column, value columns, and optional tags
   - [x] Support configurable time granularity (nanoseconds, milliseconds, seconds)
   - [x] Design retention policies (TTL, max rows)
-- [ ] **Implement time-series storage engine**
-  - [ ] Create `TimeSeriesStorage` class in `cpp/include/kadedb/timeseries/`
-  - [ ] Implement time-partitioned storage (hourly/daily buckets)
-  - [ ] Add efficient range queries by time window
-  - [ ] Implement downsampling/aggregation (avg, min, max, sum, count)
+- [x] **Implement time-series storage engine**
+  - [x] Create `TimeSeriesStorage` class in `cpp/include/kadedb/timeseries/`
+  - [x] Implement time-partitioned storage (hourly/daily buckets)
+  - [x] Add efficient range queries by time window
+  - [x] Implement downsampling/aggregation (avg, min, max, sum, count)
 - [ ] **Add time-series query support to KadeQL**
   - [ ] Extend parser for `SELECT ... WHERE timestamp BETWEEN ... AND ...`
   - [ ] Add time-based aggregation functions (`TIME_BUCKET()`, `FIRST()`, `LAST()`)
