@@ -320,6 +320,17 @@ target_compile_features(kadedb_kadeql_end_to_end_test PRIVATE cxx_std_17)
 
 add_test(NAME kadedb_kadeql_end_to_end_test COMMAND kadedb_kadeql_end_to_end_test)
 
+# TimeSeriesStorage unit tests
+add_executable(kadedb_timeseries_test
+  timeseries_test.cpp
+)
+
+target_link_libraries(kadedb_timeseries_test PRIVATE KadeDB::kadedb_core)
+
+target_compile_features(kadedb_timeseries_test PRIVATE cxx_std_17)
+
+add_test(NAME kadedb_timeseries_test COMMAND kadedb_timeseries_test)
+
 # KadeQL aggregation tests (TIME_BUCKET, FIRST, LAST)
 add_executable(kadedb_kadeql_aggregation_test
   kadeql_aggregation_test.cpp

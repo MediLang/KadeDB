@@ -97,6 +97,15 @@ target_link_libraries(kadedb_inmemory_rel_errors_example PRIVATE KadeDB::kadedb_
 
 target_compile_features(kadedb_inmemory_rel_errors_example PRIVATE cxx_std_17)
 
+# TimeSeries example
+add_executable(kadedb_timeseries_example
+  examples/timeseries_example.cpp
+)
+
+target_link_libraries(kadedb_timeseries_example PRIVATE KadeDB::kadedb_core)
+
+target_compile_features(kadedb_timeseries_example PRIVATE cxx_std_17)
+
 # KadeQL example
 add_executable(kadedb_kadeql_example
   examples/kadeql_example.cpp

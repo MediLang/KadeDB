@@ -41,12 +41,12 @@ This file tracks discrepancies between the README claims and the current codebas
 - [x] **Add time-series query support to KadeQL**
   - [x] Extend parser for `SELECT ... WHERE timestamp BETWEEN ... AND ...`
   - [x] Add time-based aggregation functions (`TIME_BUCKET()`, `FIRST()`, `LAST()`)
-- [ ] **Create tests and examples**
-  - [ ] Unit tests in `cpp/test/timeseries_test.cpp`
-  - [ ] Example in `cpp/examples/timeseries_example.cpp`
-- [ ] **Update documentation**
-  - [ ] Add `docs/sphinx/timeseries_api.rst`
-  - [ ] Update README to reflect implementation status
+- [x] **Create tests and examples**
+  - [x] Unit tests in `cpp/test/timeseries_test.cpp`
+  - [x] Example in `cpp/examples/timeseries_example.cpp`
+- [x] **Update documentation**
+  - [x] Add `docs/sphinx/timeseries_api.rst`
+  - [x] Update README to reflect implementation status
 
 #### 2. Graph Storage Model
 

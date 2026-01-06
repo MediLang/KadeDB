@@ -9,6 +9,7 @@ KadeDB Developer Documentation
    overview
    relational_api
    document_api
+   timeseries_api
 
 Guides
 ------
