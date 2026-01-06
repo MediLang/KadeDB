@@ -23,6 +23,7 @@ private:
 
   // Helpers
   Result<ResultSet> executeSelect(const SelectStatement &select);
+  Result<ResultSet> executeSelectWithExpressions(const SelectStatement &select);
   Result<ResultSet> executeInsert(const InsertStatement &insert);
   Result<ResultSet> executeUpdate(const UpdateStatement &update);
   Result<ResultSet> executeDelete(const DeleteStatement &del);

@@ -7,12 +7,13 @@ namespace kadeql {
 
 // Initialize keyword mapping
 const std::unordered_map<std::string, TokenType> Tokenizer::keywords_ = {
-    {"SELECT", TokenType::SELECT}, {"FROM", TokenType::FROM},
-    {"WHERE", TokenType::WHERE},   {"INSERT", TokenType::INSERT},
-    {"INTO", TokenType::INTO},     {"VALUES", TokenType::VALUES},
-    {"UPDATE", TokenType::UPDATE}, {"DELETE", TokenType::DELETE_},
-    {"SET", TokenType::SET},       {"NOT", TokenType::NOT},
-    {"AND", TokenType::AND},       {"OR", TokenType::OR}};
+    {"SELECT", TokenType::SELECT},   {"FROM", TokenType::FROM},
+    {"WHERE", TokenType::WHERE},     {"INSERT", TokenType::INSERT},
+    {"INTO", TokenType::INTO},       {"VALUES", TokenType::VALUES},
+    {"UPDATE", TokenType::UPDATE},   {"DELETE", TokenType::DELETE_},
+    {"SET", TokenType::SET},         {"NOT", TokenType::NOT},
+    {"AND", TokenType::AND},         {"OR", TokenType::OR},
+    {"BETWEEN", TokenType::BETWEEN}, {"AS", TokenType::AS}};
 
 Tokenizer::Tokenizer(const std::string &input)
     : input_(input), current_pos_(0), current_line_(1), current_column_(1),
@@ -140,6 +141,10 @@ std::string Tokenizer::tokenTypeToString(TokenType type) {
     return "SET";
   case TokenType::NOT:
     return "NOT";
+  case TokenType::BETWEEN:
+    return "BETWEEN";
+  case TokenType::AS:
+    return "AS";
   case TokenType::SELECT:
     return "SELECT";
   case TokenType::FROM:

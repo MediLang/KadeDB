@@ -70,11 +70,71 @@ std::string BinaryExpression::operatorToString(Operator op) {
   }
 }
 
+std::string BetweenExpression::toString() const {
+  std::ostringstream oss;
+  oss << "(";
+  if (expr_) {
+    oss << expr_->toString();
+  } else {
+    oss << "(null)";
+  }
+  oss << " BETWEEN ";
+  if (lower_) {
+    oss << lower_->toString();
+  } else {
+    oss << "(null)";
+  }
+  oss << " AND ";
+  if (upper_) {
+    oss << upper_->toString();
+  } else {
+    oss << "(null)";
+  }
+  oss << ")";
+  return oss.str();
+}
+
+std::string FunctionCallExpression::toString() const {
+  std::ostringstream oss;
+  oss << name_ << "(";
+  for (size_t i = 0; i < args_.size(); ++i) {
+    if (i > 0)
+      oss << ", ";
+    if (args_[i]) {
+      oss << args_[i]->toString();
+    } else {
+      oss << "(null)";
+    }
+  }
+  oss << ")";
+  return oss.str();
+}
+
+std::string SelectItem::toString() const {
+  std::ostringstream oss;
+  if (expr) {
+    oss << expr->toString();
+  } else {
+    oss << "(null)";
+  }
+  if (!alias.empty()) {
+    oss << " AS " << alias;
+  }
+  return oss.str();
+}
+
 std::string SelectStatement::toString() const {
   std::ostringstream oss;
   oss << "SELECT ";
 
-  if (columns_.empty() || (columns_.size() == 1 && columns_[0] == "*")) {
+  if (expression_mode_) {
+    // Expression mode: output select items
+    for (size_t i = 0; i < select_items_.size(); ++i) {
+      if (i > 0)
+        oss << ", ";
+      oss << select_items_[i].toString();
+    }
+  } else if (columns_.empty() || (columns_.size() == 1 && columns_[0] == "*")) {
     oss << "*";
   } else {
     for (size_t i = 0; i < columns_.size(); ++i) {

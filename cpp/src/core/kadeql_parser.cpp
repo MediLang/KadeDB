@@ -48,8 +48,65 @@ std::unique_ptr<Statement> KadeQLParser::parseStatement() {
 }
 
 std::unique_ptr<SelectStatement> KadeQLParser::parseSelectStatement() {
-  // Parse column list
-  std::vector<std::string> columns = parseColumnList();
+  // Try to parse expression-based select items first
+  // This handles: SELECT *, SELECT col, SELECT func(...), SELECT expr AS alias
+  std::vector<SelectItem> select_items;
+  bool has_expressions = false; // true if any non-simple-identifier item found
+
+  // Handle SELECT *
+  if (match(TokenType::ASTERISK)) {
+    // Legacy mode: SELECT *
+    std::vector<std::string> columns;
+    columns.push_back("*");
+
+    consume(TokenType::FROM, "Expected FROM after column list");
+    Token table_token =
+        consume(TokenType::IDENTIFIER, "Expected table name after FROM");
+    std::string table_name = table_token.value;
+
+    std::unique_ptr<Expression> where_clause = nullptr;
+    if (match(TokenType::WHERE)) {
+      where_clause = parseExpression();
+    }
+
+    return std::make_unique<SelectStatement>(
+        std::move(columns), std::move(table_name), std::move(where_clause));
+  }
+
+  // Parse first select item (expression with optional alias)
+  auto first_expr = parseExpression();
+
+  // Check if it's a function call or complex expression
+  if (dynamic_cast<FunctionCallExpression *>(first_expr.get()) ||
+      dynamic_cast<BinaryExpression *>(first_expr.get())) {
+    has_expressions = true;
+  }
+
+  std::string first_alias;
+  if (match(TokenType::AS)) {
+    Token alias_token =
+        consume(TokenType::IDENTIFIER, "Expected alias after AS");
+    first_alias = alias_token.value;
+    has_expressions = true;
+  }
+  select_items.emplace_back(std::move(first_expr), std::move(first_alias));
+
+  // Parse additional select items
+  while (match(TokenType::COMMA)) {
+    auto expr = parseExpression();
+    if (dynamic_cast<FunctionCallExpression *>(expr.get()) ||
+        dynamic_cast<BinaryExpression *>(expr.get())) {
+      has_expressions = true;
+    }
+    std::string alias;
+    if (match(TokenType::AS)) {
+      Token alias_token =
+          consume(TokenType::IDENTIFIER, "Expected alias after AS");
+      alias = alias_token.value;
+      has_expressions = true;
+    }
+    select_items.emplace_back(std::move(expr), std::move(alias));
+  }
 
   // Expect FROM
   consume(TokenType::FROM, "Expected FROM after column list");
@@ -63,6 +120,26 @@ std::unique_ptr<SelectStatement> KadeQLParser::parseSelectStatement() {
   std::unique_ptr<Expression> where_clause = nullptr;
   if (match(TokenType::WHERE)) {
     where_clause = parseExpression();
+  }
+
+  // If we have expressions (function calls, aliases, etc.), use expression mode
+  if (has_expressions) {
+    return std::make_unique<SelectStatement>(
+        std::move(select_items), std::move(table_name), std::move(where_clause),
+        true /*expr_tag*/);
+  }
+
+  // Otherwise, convert to legacy column-name mode for backward compatibility
+  std::vector<std::string> columns;
+  for (const auto &item : select_items) {
+    if (auto id = dynamic_cast<IdentifierExpression *>(item.expr.get())) {
+      columns.push_back(id->getName());
+    } else {
+      // Fallback: use expression mode if we can't extract simple column names
+      return std::make_unique<SelectStatement>(
+          std::move(select_items), std::move(table_name),
+          std::move(where_clause), true /*expr_tag*/);
+    }
   }
 
   return std::make_unique<SelectStatement>(
@@ -147,13 +224,27 @@ std::unique_ptr<Expression> KadeQLParser::parseLogicalAnd() {
 std::unique_ptr<Expression> KadeQLParser::parseComparison() {
   auto expr = parseAdditive();
 
-  while (isComparisonOperator(current_token_.type)) {
-    TokenType op_token = current_token_.type;
-    advance();
-    auto right = parseAdditive();
-    auto op = tokenToBinaryOperator(op_token);
-    expr = std::make_unique<BinaryExpression>(std::move(expr), op,
-                                              std::move(right));
+  while (true) {
+    if (isComparisonOperator(current_token_.type)) {
+      TokenType op_token = current_token_.type;
+      advance();
+      auto right = parseAdditive();
+      auto op = tokenToBinaryOperator(op_token);
+      expr = std::make_unique<BinaryExpression>(std::move(expr), op,
+                                                std::move(right));
+      continue;
+    }
+
+    if (match(TokenType::BETWEEN)) {
+      auto lower = parseAdditive();
+      consume(TokenType::AND, "Expected AND in BETWEEN expression");
+      auto upper = parseAdditive();
+      expr = std::make_unique<BetweenExpression>(
+          std::move(expr), std::move(lower), std::move(upper));
+      continue;
+    }
+
+    break;
   }
 
   return expr;
@@ -289,6 +380,17 @@ std::unique_ptr<Expression> KadeQLParser::parsePrimary() {
   if (check(TokenType::IDENTIFIER)) {
     Token token = current_token_;
     advance();
+    // Check if this is a function call: IDENTIFIER followed by '('
+    if (check(TokenType::LPAREN)) {
+      advance(); // consume '('
+      std::vector<std::unique_ptr<Expression>> args;
+      if (!check(TokenType::RPAREN)) {
+        args = parseExpressionList();
+      }
+      consume(TokenType::RPAREN, "Expected ')' after function arguments");
+      return std::make_unique<FunctionCallExpression>(token.value,
+                                                      std::move(args));
+    }
     return std::make_unique<IdentifierExpression>(token.value);
   }
 

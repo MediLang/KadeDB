@@ -22,6 +22,8 @@ enum class TokenType {
   DELETE_,
   SET,
   NOT,
+  BETWEEN,
+  AS,
 
   // Identifiers and literals
   IDENTIFIER,

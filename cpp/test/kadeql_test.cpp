@@ -73,6 +73,17 @@ void testSelectParser() {
     std::cout << "  WHERE SELECT: " << select3->toString() << std::endl;
   }
 
+  // Test SELECT with BETWEEN in WHERE
+  {
+    KadeQLParser parser;
+    auto stmt5 = parser.parse(
+        "SELECT name FROM users WHERE timestamp BETWEEN 10 AND 20");
+    auto select5 = dynamic_cast<SelectStatement *>(stmt5.get());
+    assert(select5 != nullptr);
+    assert(select5->getWhereClause() != nullptr);
+    std::cout << "  BETWEEN SELECT: " << select5->toString() << std::endl;
+  }
+
   // Test SELECT with trailing semicolon
   {
     KadeQLParser parser;

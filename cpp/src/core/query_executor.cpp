@@ -5,6 +5,8 @@
 #include "kadedb/value.h"
 
 #include <algorithm>
+#include <cctype>
+#include <map>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -336,6 +338,41 @@ QueryExecutor::buildPredicate(const Expression *expr) const {
   if (!expr)
     return Result<std::optional<Predicate>>::ok(std::nullopt);
 
+  // BetweenExpression handling: (id BETWEEN lo AND hi) -> (id >= lo) AND (id <=
+  // hi)
+  if (auto bet = dynamic_cast<const BetweenExpression *>(expr)) {
+    const auto *id = dynamic_cast<const IdentifierExpression *>(bet->getExpr());
+    const auto *lo = dynamic_cast<const LiteralExpression *>(bet->getLower());
+    const auto *hi = dynamic_cast<const LiteralExpression *>(bet->getUpper());
+    if (!id || !lo || !hi) {
+      return Result<std::optional<Predicate>>::err(
+          Status::InvalidArgument("Unsupported BETWEEN predicate: expected "
+                                  "identifier BETWEEN literal AND literal"));
+    }
+
+    Predicate p;
+    p.kind = Predicate::Kind::And;
+
+    Predicate ge;
+    ge.kind = Predicate::Kind::Comparison;
+    ge.column = id->getName();
+    ge.op = Predicate::Op::Ge;
+    ge.rhs = literalToValue(lo->getValue());
+
+    Predicate le;
+    le.kind = Predicate::Kind::Comparison;
+    le.column = id->getName();
+    le.op = Predicate::Op::Le;
+    le.rhs = literalToValue(hi->getValue());
+
+    p.children.emplace_back(std::move(ge));
+    p.children.emplace_back(std::move(le));
+
+    std::optional<Predicate> out;
+    out.emplace(std::move(p));
+    return Result<std::optional<Predicate>>::ok(std::move(out));
+  }
+
   // UnaryExpression handling: NOT
   if (auto ue = dynamic_cast<const UnaryExpression *>(expr)) {
     if (ue->getOperator() == UnaryExpression::Operator::NOT) {
@@ -509,6 +546,12 @@ Result<ResultSet> QueryExecutor::execute(const Statement &statement) {
 }
 
 Result<ResultSet> QueryExecutor::executeSelect(const SelectStatement &select) {
+  // Check if this is expression mode with potential aggregates
+  if (select.isExpressionMode()) {
+    return executeSelectWithExpressions(select);
+  }
+
+  // Legacy column-name mode
   std::vector<std::string> cols;
   const auto &sc = select.getColumns();
   if (!(sc.size() == 1 && sc[0] == "*")) {
@@ -529,6 +572,287 @@ Result<ResultSet> QueryExecutor::executeSelect(const SelectStatement &select) {
     return Result<ResultSet>::err(st);
   }
   return storage_.select(select.getTableName(), cols, where);
+}
+
+// Helper: check if a function name is an aggregate function
+static bool isAggregateFunction(const std::string &name) {
+  return name == "TIME_BUCKET" || name == "FIRST" || name == "LAST";
+}
+
+// Helper: uppercase a string for case-insensitive comparison
+static std::string toUpper(const std::string &s) {
+  std::string result = s;
+  for (auto &c : result)
+    c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+  return result;
+}
+
+Result<ResultSet>
+QueryExecutor::executeSelectWithExpressions(const SelectStatement &select) {
+  const auto &items = select.getSelectItems();
+  const std::string &table = select.getTableName();
+
+  // First, fetch all rows matching the WHERE clause
+  auto predRes = buildPredicate(select.getWhereClause());
+  if (!predRes.hasValue())
+    return Result<ResultSet>::err(predRes.status());
+  std::optional<Predicate> where = predRes.takeValue();
+  if (where) {
+    where = simplifyPred(*where);
+  }
+  if (auto st = validatePredicateColumns(table, where); !st.ok()) {
+    return Result<ResultSet>::err(st);
+  }
+
+  // Fetch all columns for expression evaluation
+  auto baseRes = storage_.select(table, /*columns=*/{}, where);
+  if (!baseRes.hasValue())
+    return Result<ResultSet>::err(baseRes.status());
+  const ResultSet &baseRs = baseRes.value();
+  const auto &colNames = baseRs.columnNames();
+  const auto &colTypes = baseRs.columnTypes();
+
+  // Build schema lookup
+  TableSchema schema;
+  for (size_t i = 0; i < colNames.size(); ++i) {
+    schema.addColumn(Column{colNames[i], colTypes[i], true});
+  }
+
+  // Check if any select item contains an aggregate function
+  bool hasAggregate = false;
+  const FunctionCallExpression *timeBucketFunc = nullptr;
+
+  for (const auto &item : items) {
+    if (auto fn =
+            dynamic_cast<const FunctionCallExpression *>(item.expr.get())) {
+      std::string fnName = toUpper(fn->getName());
+      if (isAggregateFunction(fnName)) {
+        hasAggregate = true;
+        if (fnName == "TIME_BUCKET") {
+          timeBucketFunc = fn;
+        }
+      }
+    }
+  }
+
+  if (!hasAggregate) {
+    // No aggregates: evaluate expressions row-by-row
+    std::vector<std::string> outColNames;
+    std::vector<ColumnType> outColTypes;
+    for (const auto &item : items) {
+      if (!item.alias.empty()) {
+        outColNames.push_back(item.alias);
+      } else if (auto id = dynamic_cast<const IdentifierExpression *>(
+                     item.expr.get())) {
+        outColNames.push_back(id->getName());
+      } else if (auto fn = dynamic_cast<const FunctionCallExpression *>(
+                     item.expr.get())) {
+        // Use lowercase function name as default column name
+        std::string name = fn->getName();
+        for (auto &c : name)
+          c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+        outColNames.push_back(name);
+      } else {
+        outColNames.push_back("expr");
+      }
+      outColTypes.push_back(ColumnType::Integer); // default, will be refined
+    }
+
+    ResultSet result(outColNames, outColTypes);
+    for (size_t r = 0; r < baseRs.rowCount(); ++r) {
+      std::vector<std::unique_ptr<Value>> rowVals;
+      // Build a Row for evalExpr
+      Row row(colNames.size());
+      for (size_t c = 0; c < colNames.size(); ++c) {
+        row.set(c, baseRs.at(r, c).clone());
+      }
+
+      for (const auto &item : items) {
+        auto valRes = evalExpr(item.expr.get(), schema, row);
+        if (!valRes.hasValue()) {
+          return Result<ResultSet>::err(valRes.status());
+        }
+        rowVals.push_back(valRes.takeValue());
+      }
+      result.addRow(ResultRow(std::move(rowVals)));
+    }
+    return Result<ResultSet>::ok(std::move(result));
+  }
+
+  // Aggregate mode: group by TIME_BUCKET if present, otherwise single group
+  // Map: bucket_key -> vector of row indices
+  std::map<int64_t, std::vector<size_t>> buckets;
+
+  if (timeBucketFunc) {
+    // TIME_BUCKET(timestamp_expr, interval_seconds)
+    const auto &args = timeBucketFunc->getArgs();
+    if (args.size() != 2) {
+      return Result<ResultSet>::err(
+          Status::InvalidArgument("TIME_BUCKET requires exactly 2 arguments: "
+                                  "(timestamp_expr, interval_seconds)"));
+    }
+
+    // Get interval from second argument (must be literal)
+    const auto *intervalLit =
+        dynamic_cast<const LiteralExpression *>(args[1].get());
+    if (!intervalLit) {
+      return Result<ResultSet>::err(Status::InvalidArgument(
+          "TIME_BUCKET interval must be a literal integer"));
+    }
+    int64_t interval = 0;
+    const auto &iv = intervalLit->getValue();
+    if (std::holds_alternative<int64_t>(iv)) {
+      interval = std::get<int64_t>(iv);
+    } else if (std::holds_alternative<double>(iv)) {
+      interval = static_cast<int64_t>(std::get<double>(iv));
+    } else {
+      return Result<ResultSet>::err(
+          Status::InvalidArgument("TIME_BUCKET interval must be numeric"));
+    }
+    if (interval <= 0) {
+      return Result<ResultSet>::err(
+          Status::InvalidArgument("TIME_BUCKET interval must be positive"));
+    }
+
+    // Group rows by bucket
+    for (size_t r = 0; r < baseRs.rowCount(); ++r) {
+      Row row(colNames.size());
+      for (size_t c = 0; c < colNames.size(); ++c) {
+        row.set(c, baseRs.at(r, c).clone());
+      }
+      auto tsRes = evalExpr(args[0].get(), schema, row);
+      if (!tsRes.hasValue()) {
+        return Result<ResultSet>::err(tsRes.status());
+      }
+      int64_t ts = tsRes.value()->asInt();
+      int64_t bucketStart = (ts / interval) * interval;
+      buckets[bucketStart].push_back(r);
+    }
+  } else {
+    // Single group (all rows)
+    for (size_t r = 0; r < baseRs.rowCount(); ++r) {
+      buckets[0].push_back(r);
+    }
+  }
+
+  // Build output schema
+  std::vector<std::string> outColNames;
+  std::vector<ColumnType> outColTypes;
+  for (const auto &item : items) {
+    if (!item.alias.empty()) {
+      outColNames.push_back(item.alias);
+    } else if (auto id = dynamic_cast<const IdentifierExpression *>(
+                   item.expr.get())) {
+      outColNames.push_back(id->getName());
+    } else if (auto fn = dynamic_cast<const FunctionCallExpression *>(
+                   item.expr.get())) {
+      std::string name = fn->getName();
+      for (auto &c : name)
+        c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+      outColNames.push_back(name);
+    } else {
+      outColNames.push_back("expr");
+    }
+    outColTypes.push_back(ColumnType::Integer); // default
+  }
+
+  ResultSet result(outColNames, outColTypes);
+
+  // Process each bucket
+  for (const auto &[bucketKey, rowIndices] : buckets) {
+    std::vector<std::unique_ptr<Value>> outRow;
+
+    for (const auto &item : items) {
+      auto fn = dynamic_cast<const FunctionCallExpression *>(item.expr.get());
+      if (fn) {
+        std::string fnName = toUpper(fn->getName());
+
+        if (fnName == "TIME_BUCKET") {
+          // Return the bucket start
+          outRow.push_back(ValueFactory::createInteger(bucketKey));
+        } else if (fnName == "FIRST" || fnName == "LAST") {
+          // FIRST(value_expr, order_by_expr) / LAST(value_expr, order_by_expr)
+          const auto &args = fn->getArgs();
+          if (args.size() < 1 || args.size() > 2) {
+            return Result<ResultSet>::err(Status::InvalidArgument(
+                fnName +
+                " requires 1 or 2 arguments: (value_expr [, order_by_expr])"));
+          }
+
+          // Collect (order_key, value) pairs
+          std::vector<std::pair<int64_t, std::unique_ptr<Value>>> pairs;
+          for (size_t ri : rowIndices) {
+            Row row(colNames.size());
+            for (size_t c = 0; c < colNames.size(); ++c) {
+              row.set(c, baseRs.at(ri, c).clone());
+            }
+
+            // Get order key
+            int64_t orderKey = 0;
+            if (args.size() == 2) {
+              auto okRes = evalExpr(args[1].get(), schema, row);
+              if (!okRes.hasValue())
+                return Result<ResultSet>::err(okRes.status());
+              orderKey = okRes.value()->asInt();
+            } else {
+              // Default: use 'timestamp' column if exists
+              size_t tsIdx = schema.findColumn("timestamp");
+              if (tsIdx != TableSchema::npos) {
+                orderKey = row.values()[tsIdx]->asInt();
+              } else {
+                // Use row index as fallback
+                orderKey = static_cast<int64_t>(ri);
+              }
+            }
+
+            // Get value
+            auto valRes = evalExpr(args[0].get(), schema, row);
+            if (!valRes.hasValue())
+              return Result<ResultSet>::err(valRes.status());
+
+            pairs.emplace_back(orderKey, valRes.takeValue());
+          }
+
+          if (pairs.empty()) {
+            outRow.push_back(ValueFactory::createNull());
+          } else {
+            // Sort by order key ascending
+            std::sort(
+                pairs.begin(), pairs.end(),
+                [](const auto &a, const auto &b) { return a.first < b.first; });
+
+            if (fnName == "FIRST") {
+              outRow.push_back(pairs.front().second->clone());
+            } else { // LAST
+              outRow.push_back(pairs.back().second->clone());
+            }
+          }
+        } else {
+          return Result<ResultSet>::err(
+              Status::InvalidArgument("Unknown aggregate function: " + fnName));
+        }
+      } else {
+        // Non-aggregate expression in aggregate query: evaluate on first row of
+        // group
+        if (rowIndices.empty()) {
+          outRow.push_back(ValueFactory::createNull());
+        } else {
+          Row row(colNames.size());
+          for (size_t c = 0; c < colNames.size(); ++c) {
+            row.set(c, baseRs.at(rowIndices[0], c).clone());
+          }
+          auto valRes = evalExpr(item.expr.get(), schema, row);
+          if (!valRes.hasValue())
+            return Result<ResultSet>::err(valRes.status());
+          outRow.push_back(valRes.takeValue());
+        }
+      }
+    }
+
+    result.addRow(ResultRow(std::move(outRow)));
+  }
+
+  return Result<ResultSet>::ok(std::move(result));
 }
 
 Result<ResultSet> QueryExecutor::executeInsert(const InsertStatement &insert) {

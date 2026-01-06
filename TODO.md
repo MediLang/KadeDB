@@ -38,9 +38,9 @@ This file tracks discrepancies between the README claims and the current codebas
   - [x] Implement time-partitioned storage (hourly/daily buckets)
   - [x] Add efficient range queries by time window
   - [x] Implement downsampling/aggregation (avg, min, max, sum, count)
-- [ ] **Add time-series query support to KadeQL**
-  - [ ] Extend parser for `SELECT ... WHERE timestamp BETWEEN ... AND ...`
-  - [ ] Add time-based aggregation functions (`TIME_BUCKET()`, `FIRST()`, `LAST()`)
+- [x] **Add time-series query support to KadeQL**
+  - [x] Extend parser for `SELECT ... WHERE timestamp BETWEEN ... AND ...`
+  - [x] Add time-based aggregation functions (`TIME_BUCKET()`, `FIRST()`, `LAST()`)
 - [ ] **Create tests and examples**
   - [ ] Unit tests in `cpp/test/timeseries_test.cpp`
   - [ ] Example in `cpp/examples/timeseries_example.cpp`

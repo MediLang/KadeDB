@@ -18,8 +18,10 @@ class DeleteStatement;
 class Expression;
 class UnaryExpression;
 class BinaryExpression;
+class BetweenExpression;
 class IdentifierExpression;
 class LiteralExpression;
+class FunctionCallExpression;
 
 /**
  * Statement type discriminator
@@ -99,6 +101,7 @@ public:
 private:
   std::string name_;
 };
+
 class BinaryExpression : public Expression {
 public:
   enum class Operator {
@@ -134,6 +137,69 @@ private:
   std::unique_ptr<Expression> right_;
 };
 
+class BetweenExpression : public Expression {
+public:
+  BetweenExpression(std::unique_ptr<Expression> expr,
+                    std::unique_ptr<Expression> lower,
+                    std::unique_ptr<Expression> upper)
+      : expr_(std::move(expr)), lower_(std::move(lower)),
+        upper_(std::move(upper)) {}
+
+  const Expression *getExpr() const { return expr_.get(); }
+  const Expression *getLower() const { return lower_.get(); }
+  const Expression *getUpper() const { return upper_.get(); }
+
+  std::string toString() const override;
+
+private:
+  std::unique_ptr<Expression> expr_;
+  std::unique_ptr<Expression> lower_;
+  std::unique_ptr<Expression> upper_;
+};
+
+/**
+ * Function call expression for aggregate and scalar functions
+ * Examples: TIME_BUCKET(timestamp, 60), FIRST(value, timestamp), LAST(value,
+ * timestamp)
+ */
+class FunctionCallExpression : public Expression {
+public:
+  FunctionCallExpression(std::string name,
+                         std::vector<std::unique_ptr<Expression>> args)
+      : name_(std::move(name)), args_(std::move(args)) {}
+
+  const std::string &getName() const { return name_; }
+  const std::vector<std::unique_ptr<Expression>> &getArgs() const {
+    return args_;
+  }
+
+  std::string toString() const override;
+
+private:
+  std::string name_;
+  std::vector<std::unique_ptr<Expression>> args_;
+};
+
+/**
+ * Select item: an expression with an optional alias
+ * Examples: col, col AS alias, TIME_BUCKET(ts, 60) AS bucket
+ */
+struct SelectItem {
+  std::unique_ptr<Expression> expr;
+  std::string alias; // empty if no alias
+
+  SelectItem(std::unique_ptr<Expression> e, std::string a = "")
+      : expr(std::move(e)), alias(std::move(a)) {}
+
+  // Move-only
+  SelectItem(SelectItem &&) = default;
+  SelectItem &operator=(SelectItem &&) = default;
+  SelectItem(const SelectItem &) = delete;
+  SelectItem &operator=(const SelectItem &) = delete;
+
+  std::string toString() const;
+};
+
 /**
  * Base class for all statements
  */
@@ -146,15 +212,37 @@ public:
 
 /**
  * SELECT statement AST node
+ *
+ * Supports two modes:
+ * 1. Legacy column-name mode: SELECT col1, col2 FROM t (backward compatible)
+ * 2. Expression mode: SELECT expr AS alias, ... FROM t (new)
+ *
+ * Use isExpressionMode() to check which mode is active.
  */
 class SelectStatement : public Statement {
 public:
+  // Legacy constructor (column names only)
   SelectStatement(std::vector<std::string> columns, std::string table_name,
                   std::unique_ptr<Expression> where_clause = nullptr)
       : columns_(std::move(columns)), table_name_(std::move(table_name)),
-        where_clause_(std::move(where_clause)) {}
+        where_clause_(std::move(where_clause)), expression_mode_(false) {}
 
+  // New constructor (expression-based select items)
+  SelectStatement(std::vector<SelectItem> select_items, std::string table_name,
+                  std::unique_ptr<Expression> where_clause, bool /*expr_tag*/)
+      : table_name_(std::move(table_name)),
+        where_clause_(std::move(where_clause)),
+        select_items_(std::move(select_items)), expression_mode_(true) {}
+
+  // Legacy accessor (returns column names; works in both modes)
   const std::vector<std::string> &getColumns() const { return columns_; }
+
+  // New accessor for expression mode
+  bool isExpressionMode() const { return expression_mode_; }
+  const std::vector<SelectItem> &getSelectItems() const {
+    return select_items_;
+  }
+
   const std::string &getTableName() const { return table_name_; }
   const Expression *getWhereClause() const { return where_clause_.get(); }
 
@@ -162,9 +250,11 @@ public:
   StatementType type() const override { return StatementType::SELECT; }
 
 private:
-  std::vector<std::string> columns_;
+  std::vector<std::string> columns_; // legacy mode
   std::string table_name_;
   std::unique_ptr<Expression> where_clause_;
+  std::vector<SelectItem> select_items_; // expression mode
+  bool expression_mode_ = false;
 };
 
 /**
