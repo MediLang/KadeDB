@@ -86,6 +86,7 @@ Explore examples:
 - `cpp/examples/inmemory_rel_example.cpp` – in-memory relational storage
 - `cpp/examples/inmemory_rel_errors_example.cpp` – error handling demo
 - `cpp/examples/timeseries_example.cpp` – in-memory time-series storage (rangeQuery + aggregate)
+- `cpp/examples/graph_example.cpp` – in-memory graph storage (CRUD + traversal + graph queries)
 - `examples/cpp_example/` – standalone C++ core API example
 - `examples/c_example/` – C ABI example
 - `examples/lite_cli/` – interactive KadeDB-Lite CLI
@@ -96,6 +97,7 @@ Key tests:
 - `cpp/test/storage_predicates_test.cpp`
 - `cpp/test/document_predicates_test.cpp`
 - `cpp/test/timeseries_test.cpp`
+- `cpp/test/graph_test.cpp`
 
 ## Developer Reference
 

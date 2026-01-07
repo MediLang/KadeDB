@@ -331,6 +331,17 @@ target_compile_features(kadedb_timeseries_test PRIVATE cxx_std_17)
 
 add_test(NAME kadedb_timeseries_test COMMAND kadedb_timeseries_test)
 
+# Graph storage/query unit tests
+add_executable(kadedb_graph_test
+  graph_test.cpp
+)
+
+target_link_libraries(kadedb_graph_test PRIVATE KadeDB::kadedb_core)
+
+target_compile_features(kadedb_graph_test PRIVATE cxx_std_17)
+
+add_test(NAME kadedb_graph_test COMMAND kadedb_graph_test)
+
 # KadeQL aggregation tests (TIME_BUCKET, FIRST, LAST)
 add_executable(kadedb_kadeql_aggregation_test
   kadeql_aggregation_test.cpp

@@ -50,25 +50,25 @@ This file tracks discrepancies between the README claims and the current codebas
 
 #### 2. Graph Storage Model
 
-- [ ] **Design graph schema**
-  - [ ] Define `Node` and `Edge` types with property support
-  - [ ] Design index structures for adjacency lookups
-  - [ ] Support labeled edges and typed relationships
-- [ ] **Implement graph storage engine**
-  - [ ] Create `GraphStorage` class in `cpp/include/kadedb/graph/`
-  - [ ] Implement node/edge CRUD operations
-  - [ ] Add adjacency list storage with efficient neighbor lookups
-  - [ ] Implement basic traversal algorithms (BFS, DFS)
-- [ ] **Add graph query support**
-  - [ ] Design query syntax for path traversal (e.g., Cypher-like or custom)
-  - [ ] Implement `MATCH` patterns for subgraph queries
-  - [ ] Add shortest path and connectivity queries
-- [ ] **Create tests and examples**
-  - [ ] Unit tests in `cpp/test/graph_test.cpp`
-  - [ ] Example in `cpp/examples/graph_example.cpp`
-- [ ] **Update documentation**
-  - [ ] Add `docs/sphinx/graph_api.rst`
-  - [ ] Update README to reflect implementation status
+- [x] **Design graph schema**
+  - [x] Define `Node` and `Edge` types with property support
+  - [x] Design index structures for adjacency lookups
+  - [x] Support labeled edges and typed relationships
+- [x] **Implement graph storage engine**
+  - [x] Create `GraphStorage` class in `cpp/include/kadedb/graph/`
+  - [x] Implement node/edge CRUD operations
+  - [x] Add adjacency list storage with efficient neighbor lookups
+  - [x] Implement basic traversal algorithms (BFS, DFS)
+- [x] **Add graph query support**
+  - [x] Design query syntax for path traversal (e.g., Cypher-like or custom)
+  - [x] Implement `MATCH` patterns for subgraph queries
+  - [x] Add shortest path and connectivity queries
+- [x] **Create tests and examples**
+  - [x] Unit tests in `cpp/test/graph_test.cpp`
+  - [x] Example in `cpp/examples/graph_example.cpp`
+- [x] **Update documentation**
+  - [x] Add `docs/sphinx/graph_api.rst`
+  - [x] Update README to reflect implementation status
 
 #### 3. Rust Services Layer
 

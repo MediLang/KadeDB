@@ -10,6 +10,7 @@ KadeDB Developer Documentation
    relational_api
    document_api
    timeseries_api
+   graph_api
 
 Guides
 ------
