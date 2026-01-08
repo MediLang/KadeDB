@@ -34,6 +34,39 @@ jobs:
       - name: Test (Debug)
         run: ctest --test-dir build/debug --output-on-failure
 
+  rust_services:
+    name: Rust Services (ubuntu-latest)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            services/target
+          key: ${{ runner.os }}-cargo-services-${{ hashFiles('services/**/Cargo.toml', 'services/Cargo.lock') }}
+
+      - name: Rustfmt (check)
+        working-directory: services
+        run: cargo fmt --all -- --check
+
+      - name: Clippy
+        working-directory: services
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Test
+        working-directory: services
+        run: cargo test --workspace
+
   # Full CI on main branch and PRs
   build:
     if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'

@@ -72,10 +72,10 @@ This file tracks discrepancies between the README claims and the current codebas
 
 #### 3. Rust Services Layer
 
-- [ ] **Set up Rust project structure**
-  - [ ] Create `services/` directory with `Cargo.toml`
-  - [ ] Configure workspace in root or standalone crate
-  - [ ] Set up CI for Rust builds (add to `.github/workflows/ci.yml`)
+- [x] **Set up Rust project structure**
+  - [x] Create `services/` directory with `Cargo.toml`
+  - [x] Configure workspace in root or standalone crate
+  - [x] Set up CI for Rust builds (add to `.github/workflows/ci.yml`)
 - [ ] **Implement REST API service**
   - [ ] Use `axum` or `actix-web` framework
   - [ ] Create endpoints: `POST /query`, `GET /health`, `POST /tables`
