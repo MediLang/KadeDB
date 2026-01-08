@@ -1,8 +1,12 @@
 use axum::{
+    extract::State,
     http::StatusCode,
+    middleware,
+    response::IntoResponse,
     routing::{get, post},
     Json, Router,
 };
+use kadedb_services_auth::{authorize_bearer_header, AuthConfig, AuthError, Permission};
 use serde::{Deserialize, Serialize};
 
 #[tokio::main]
@@ -13,7 +17,8 @@ async fn main() {
         )
         .init();
 
-    let app = router();
+    let auth_cfg = AuthConfig::from_env();
+    let app = router(auth_cfg);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8080")
         .await
@@ -23,11 +28,50 @@ async fn main() {
     axum::serve(listener, app).await.expect("serve");
 }
 
-fn router() -> Router {
+fn router(auth_cfg: AuthConfig) -> Router {
+    let protected_read = Router::new().route(
+        "/query",
+        post(query).route_layer(middleware::from_fn_with_state(
+            (auth_cfg.clone(), Permission::Read),
+            auth_middleware,
+        )),
+    );
+
+    let protected_write = Router::new().route(
+        "/tables",
+        post(create_table).route_layer(middleware::from_fn_with_state(
+            (auth_cfg.clone(), Permission::Write),
+            auth_middleware,
+        )),
+    );
+
     Router::new()
         .route("/health", get(health))
-        .route("/query", post(query))
-        .route("/tables", post(create_table))
+        .merge(protected_read)
+        .merge(protected_write)
+}
+
+async fn auth_middleware(
+    State((cfg, required)): State<(AuthConfig, Permission)>,
+    req: axum::http::Request<axum::body::Body>,
+    next: middleware::Next,
+) -> impl IntoResponse {
+    let header = req
+        .headers()
+        .get(axum::http::header::AUTHORIZATION)
+        .and_then(|v| v.to_str().ok());
+
+    match authorize_bearer_header(&cfg, header, required) {
+        Ok(_) => Ok(next.run(req).await),
+        Err(err) => Err(map_auth_error(err)),
+    }
+}
+
+fn map_auth_error(err: AuthError) -> StatusCode {
+    match err {
+        AuthError::Forbidden => StatusCode::FORBIDDEN,
+        _ => StatusCode::UNAUTHORIZED,
+    }
 }
 
 #[derive(Debug, Serialize)]
@@ -123,7 +167,10 @@ mod tests {
 
     #[tokio::test]
     async fn health_returns_ok() {
-        let app = router();
+        let app = router(AuthConfig {
+            enabled: false,
+            jwt_secret: None,
+        });
 
         let res = app
             .oneshot(
@@ -140,7 +187,10 @@ mod tests {
 
     #[tokio::test]
     async fn query_echoes_query() {
-        let app = router();
+        let app = router(AuthConfig {
+            enabled: false,
+            jwt_secret: None,
+        });
         let body = serde_json::json!({"query": "SELECT 1"}).to_string();
 
         let res = app

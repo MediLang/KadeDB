@@ -84,10 +84,10 @@ This file tracks discrepancies between the README claims and the current codebas
   - [x] Define `.proto` files in `services/proto/`
   - [x] Generate Rust bindings with `tonic`
   - [x] Implement streaming query results
-- [ ] **Add authentication and RBAC**
-  - [ ] Implement JWT-based authentication
-  - [ ] Define role-based permissions (read, write, admin)
-  - [ ] Add middleware for auth enforcement
+- [x] **Add authentication and RBAC**
+  - [x] Implement JWT-based authentication
+  - [x] Define role-based permissions (read, write, admin)
+  - [x] Add middleware for auth enforcement
 - [ ] **FFI bridge to C++ core**
   - [ ] Use `cxx` or `bindgen` to call C ABI from Rust
   - [ ] Wrap storage operations in async Rust tasks

@@ -1,10 +1,18 @@
 use std::pin::Pin;
 
+use kadedb_services_auth::{authorize_bearer_header, AuthConfig, AuthError, Permission};
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::{transport::Server, Request, Response, Status};
 
 pub mod kadedb {
     tonic::include_proto!("kadedb");
+}
+
+fn map_auth_error(err: AuthError) -> Status {
+    match err {
+        AuthError::Forbidden => Status::permission_denied("forbidden"),
+        _ => Status::unauthenticated("unauthenticated"),
+    }
 }
 
 use kadedb::query_service_server::{QueryService, QueryServiceServer};
@@ -54,7 +62,22 @@ async fn main() {
         .init();
 
     let addr = "0.0.0.0:50051".parse().expect("valid addr");
-    let svc = QueryServiceServer::new(QueryServiceImpl);
+    let auth_cfg = AuthConfig::from_env();
+    let interceptor = move |req: Request<()>| -> Result<Request<()>, Status> {
+        if !auth_cfg.enabled {
+            return Ok(req);
+        }
+
+        let header = req
+            .metadata()
+            .get("authorization")
+            .and_then(|v| v.to_str().ok());
+
+        authorize_bearer_header(&auth_cfg, header, Permission::Read)
+            .map(|_| req)
+            .map_err(map_auth_error)
+    };
+    let svc = QueryServiceServer::with_interceptor(QueryServiceImpl, interceptor);
 
     tracing::info!("gRPC listening on {addr}");
 
