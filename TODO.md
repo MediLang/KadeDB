@@ -80,10 +80,10 @@ This file tracks discrepancies between the README claims and the current codebas
   - [x] Use `axum` or `actix-web` framework
   - [x] Create endpoints: `POST /query`, `GET /health`, `POST /tables`
   - [x] Add JSON serialization for query results
-- [ ] **Implement gRPC service**
-  - [ ] Define `.proto` files in `services/proto/`
-  - [ ] Generate Rust bindings with `tonic`
-  - [ ] Implement streaming query results
+- [x] **Implement gRPC service**
+  - [x] Define `.proto` files in `services/proto/`
+  - [x] Generate Rust bindings with `tonic`
+  - [x] Implement streaming query results
 - [ ] **Add authentication and RBAC**
   - [ ] Implement JWT-based authentication
   - [ ] Define role-based permissions (read, write, admin)

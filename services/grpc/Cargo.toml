@@ -1,0 +1,17 @@
+[package]
+name = "kadedb-services-grpc"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+prost = "0.13"
+serde_json = "1"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+tokio-stream = "0.1"
+tonic = "0.12"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[build-dependencies]
+protoc-bin-vendored = "3"
+tonic-build = "0.12"

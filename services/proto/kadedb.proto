@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package kadedb;
+
+service QueryService {
+  rpc Query(QueryRequest) returns (stream QueryRow);
+}
+
+message QueryRequest {
+  string query = 1;
+}
+
+message QueryRow {
+  string json = 1;
+}
