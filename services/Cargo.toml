@@ -2,6 +2,7 @@
 members = [
   "api",
   "auth",
+  "ffi",
   "grpc",
 ]
 resolver = "2"

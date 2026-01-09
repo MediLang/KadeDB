@@ -88,9 +88,9 @@ This file tracks discrepancies between the README claims and the current codebas
   - [x] Implement JWT-based authentication
   - [x] Define role-based permissions (read, write, admin)
   - [x] Add middleware for auth enforcement
-- [ ] **FFI bridge to C++ core**
-  - [ ] Use `cxx` or `bindgen` to call C ABI from Rust
-  - [ ] Wrap storage operations in async Rust tasks
+- [x] **FFI bridge to C++ core**
+  - [x] Use `cxx` or `bindgen` to call C ABI from Rust
+  - [x] Wrap storage operations in async Rust tasks
 - [ ] **Create tests and examples**
   - [ ] Integration tests for REST/gRPC endpoints
   - [ ] Example client in `services/examples/`

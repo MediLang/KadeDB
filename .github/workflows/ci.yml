@@ -41,6 +41,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install Ninja (Ubuntu)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build
+
+      - name: Configure native (Debug)
+        run: cmake -S . --preset debug
+
+      - name: Build native C ABI (kadedb_c)
+        run: cmake --build --preset debug --target kadedb_c --parallel
+
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -61,10 +72,14 @@ jobs:
 
       - name: Clippy
         working-directory: services
+        env:
+          KADEDB_CMAKE_PRESET: debug
         run: cargo clippy --workspace --all-targets -- -D warnings
 
       - name: Test
         working-directory: services
+        env:
+          KADEDB_CMAKE_PRESET: debug
         run: cargo test --workspace
 
   # Full CI on main branch and PRs

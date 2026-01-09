@@ -35,8 +35,8 @@ CMakeCache.txt
 *.ninja_log
 compile_commands.json
 
- # Rust build outputs
- services/target/
+# Rust build outputs
+services/target/
 
 # Diagnostics logs (keep README tracked)
 diagnostics/**
