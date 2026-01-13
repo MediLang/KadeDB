@@ -14,7 +14,9 @@
 - Getting Started: `docs/sphinx/guides/getting_started.md`
 - API Reference (Doxygen groups): `StorageAPI`, `DocumentAPI`, `PredicateBuilder`
 - Examples: `cpp/examples/`
+- Services Examples: `services/examples/`
 - Tests: `cpp/test/`
+- Services Tests: `services/*/tests/`
 - Troubleshooting: `docs/sphinx/guides/troubleshooting.md`
 - Contributing: `docs/sphinx/guides/contributing.md`
 
@@ -51,6 +53,48 @@ cmake --build --preset debug -j
 
 # Run tests
 ctest --test-dir build --output-on-failure
+```
+
+## Quick Start (Services)
+
+The Rust services workspace lives in `services/`.
+
+Run REST (Axum):
+
+```bash
+cargo run -p kadedb-services-api --manifest-path services/Cargo.toml
+```
+
+Run gRPC (Tonic):
+
+```bash
+cargo run -p kadedb-services-grpc --manifest-path services/Cargo.toml
+```
+
+Run the services test suite:
+
+```bash
+cargo test --workspace --manifest-path services/Cargo.toml
+```
+
+### Auth configuration
+
+Both services share the same environment variables:
+
+```bash
+export KADEDB_AUTH_ENABLED=true
+export KADEDB_JWT_SECRET=your_shared_secret
+```
+
+When enabled:
+
+- REST expects `Authorization: Bearer <token>`
+- gRPC expects metadata `authorization: Bearer <token>`
+
+### Examples CLI
+
+```bash
+cargo run -p kadedb-services-examples --manifest-path services/Cargo.toml -- --help
 ```
 
 ## Testing and Coverage

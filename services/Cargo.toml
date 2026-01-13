@@ -2,6 +2,7 @@
 members = [
   "api",
   "auth",
+  "examples",
   "ffi",
   "grpc",
 ]

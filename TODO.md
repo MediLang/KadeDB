@@ -91,12 +91,12 @@ This file tracks discrepancies between the README claims and the current codebas
 - [x] **FFI bridge to C++ core**
   - [x] Use `cxx` or `bindgen` to call C ABI from Rust
   - [x] Wrap storage operations in async Rust tasks
-- [ ] **Create tests and examples**
-  - [ ] Integration tests for REST/gRPC endpoints
-  - [ ] Example client in `services/examples/`
-- [ ] **Update documentation**
-  - [ ] Add `docs/sphinx/services_api.rst`
-  - [ ] Update README to reflect implementation status
+- [x] **Create tests and examples**
+  - [x] Integration tests for REST/gRPC endpoints
+  - [x] Example client in `services/examples/`
+- [x] **Update documentation**
+  - [x] Add `docs/sphinx/services_api.rst`
+  - [x] Update README to reflect implementation status
 
 ---
 

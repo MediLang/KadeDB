@@ -8,6 +8,7 @@ KadeDB Developer Documentation
    quick_links
    overview
    relational_api
+   services_api
    document_api
    timeseries_api
    graph_api
