@@ -129,14 +129,14 @@ This file tracks discrepancies between the README claims and the current codebas
       - [ ] Time range: `rangeQuery` equivalent over varying window sizes
       - [ ] Time bucket agg: COUNT/SUM over fixed bucket widths with low vs moderate bucket counts
     - [ ] Go/no-go thresholds (initial): GPU path should beat optimized CPU by >= 2x on >= 10M rows without pathological latency for small inputs
-- [ ] **Set up CUDA/GPU build infrastructure**
+- [x] **Set up CUDA/GPU build infrastructure**
   - [x] Add CMake option `KADEDB_ENABLE_GPU`
   - [x] Detect CUDA toolkit and configure compilation
   - [x] Add CI job for GPU builds (optional, or document manual build)
 - [ ] **Implement GPU-accelerated kernels**
   - [x] Create `cpp/src/gpu/` directory for CUDA code
-  - [ ] Implement parallel scan/filter kernel
-  - [ ] Implement parallel aggregation kernel
+  - [x] Implement parallel scan/filter kernel
+  - [x] Implement parallel aggregation kernel
 - [ ] **Integrate with storage engine**
   - [ ] Add GPU execution path in query executor
   - [ ] Implement memory transfer optimizations (pinned memory, async copy)
