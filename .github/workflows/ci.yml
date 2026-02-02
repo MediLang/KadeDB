@@ -34,6 +34,28 @@ jobs:
       - name: Test (Debug)
         run: ctest --test-dir build/debug --output-on-failure
 
+  gpu_build_sanity:
+    if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
+    name: GPU Option Build Sanity (ubuntu-latest)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Ninja (Ubuntu)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build
+
+      - name: Configure (Debug, KADEDB_ENABLE_GPU=ON)
+        run: |
+          cmake -S . -B build/gpu-sanity -G Ninja \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DKADEDB_ENABLE_GPU=ON
+
+      - name: Build (Debug, KADEDB_ENABLE_GPU=ON)
+        run: cmake --build build/gpu-sanity --parallel
+
   rust_services:
     name: Rust Services (ubuntu-latest)
     runs-on: ubuntu-latest

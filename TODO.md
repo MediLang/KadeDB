@@ -106,13 +106,35 @@ This file tracks discrepancies between the README claims and the current codebas
 
 - [ ] **Evaluate GPU use cases**
   - [ ] Identify compute-intensive operations (aggregations, joins, scans)
+    - [ ] Relational full scan + predicate (`InMemoryRelationalStorage::select` + `evalPredicate`)
+    - [ ] Time-series range scan + predicate (`InMemoryTimeSeriesStorage::rangeQuery`)
+    - [ ] Time-series bucket aggregation (`InMemoryTimeSeriesStorage::aggregate`: per-row bucketing + SUM/MIN/MAX/AVG/COUNT)
+    - [ ] Expression-mode aggregation (`QueryExecutor::executeSelectWithExpressions`: `TIME_BUCKET`, `FIRST`, `LAST`)
+    - [ ] Join note: no relational join operator is currently implemented; GPU join evaluation is blocked on implementing CPU join first
+  - [ ] Decide GPU-suitable candidates (near-term)
+    - [ ] Numeric predicate evaluation (filters on `int64`/`double`) with simple comparisons (Eq/Ne/Lt/Le/Gt/Ge)
+    - [ ] Projection + compaction (produce row-id mask on GPU, compact selected columns)
+    - [ ] Histogram-style aggregation / fixed-width time buckets for time-series (COUNT/SUM/MIN/MAX)
+  - [ ] Record constraints / risks (likely to dominate vs GPU compute)
+    - [ ] Current row layout uses `std::unique_ptr<Value>` per cell (AoS + pointers) -> not GPU-friendly; likely need a columnar/packed representation for GPU paths
+    - [ ] Host↔device transfer cost: GPU wins only for large batches and/or when reuse amortizes copies
+    - [ ] High-cardinality GROUP BY requires hash tables; start with fixed-width bucketing where bucket index can be computed cheaply
+    - [ ] String comparisons and general `Value::compare()` are not good first targets
   - [ ] Benchmark CPU vs potential GPU speedup
+    - [ ] Metrics: end-to-end query latency, rows/sec, bytes/sec, and time split (predicate eval vs materialization vs transfers)
+    - [ ] Datasets: synthetic numeric tables (1e6, 1e7, 1e8 rows) with 1-3 numeric columns + optional timestamp
+    - [ ] Queries:
+      - [ ] Scan-only: `SELECT * FROM t` (baseline materialization cost)
+      - [ ] Filter-selective: `WHERE x < k` at ~1%, 10%, 50%, 90% selectivity
+      - [ ] Time range: `rangeQuery` equivalent over varying window sizes
+      - [ ] Time bucket agg: COUNT/SUM over fixed bucket widths with low vs moderate bucket counts
+    - [ ] Go/no-go thresholds (initial): GPU path should beat optimized CPU by >= 2x on >= 10M rows without pathological latency for small inputs
 - [ ] **Set up CUDA/GPU build infrastructure**
-  - [ ] Add CMake option `KADEDB_ENABLE_GPU`
-  - [ ] Detect CUDA toolkit and configure compilation
-  - [ ] Add CI job for GPU builds (optional, or document manual build)
+  - [x] Add CMake option `KADEDB_ENABLE_GPU`
+  - [x] Detect CUDA toolkit and configure compilation
+  - [x] Add CI job for GPU builds (optional, or document manual build)
 - [ ] **Implement GPU-accelerated kernels**
-  - [ ] Create `cpp/src/gpu/` directory for CUDA code
+  - [x] Create `cpp/src/gpu/` directory for CUDA code
   - [ ] Implement parallel scan/filter kernel
   - [ ] Implement parallel aggregation kernel
 - [ ] **Integrate with storage engine**
@@ -120,6 +142,7 @@ This file tracks discrepancies between the README claims and the current codebas
   - [ ] Implement memory transfer optimizations (pinned memory, async copy)
 - [ ] **Create tests and benchmarks**
   - [ ] GPU unit tests (requires CUDA-capable CI or manual testing)
+  - [x] CPU baseline benchmark for scan/filter + time-series aggregation (`kadedb_query_bench`)
   - [ ] Benchmark comparing CPU vs GPU performance
 - [ ] **Update documentation**
   - [ ] Add GPU build instructions to `docs/sphinx/guides/getting_started.md`

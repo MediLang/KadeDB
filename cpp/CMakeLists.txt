@@ -22,6 +22,7 @@ add_library(kadedb_core ${LIB_TYPE}
   src/core/kadeql_ast.cpp
   src/core/kadeql_parser.cpp
   src/core/query_executor.cpp
+  src/gpu/gpu.cpp
 )
 
 add_library(KadeDB::kadedb_core ALIAS kadedb_core)
@@ -65,6 +66,16 @@ if(KADEDB_RC_STRINGS)
   target_compile_definitions(kadedb_core PUBLIC KADEDB_RC_STRINGS)
 endif()
 
+# Optional GPU support (CUDA)
+if(KADEDB_ENABLE_GPU)
+  find_package(CUDAToolkit)
+  if(CUDAToolkit_FOUND)
+    target_compile_definitions(kadedb_core PUBLIC KADEDB_HAVE_CUDA)
+  else()
+    message(WARNING "KADEDB_ENABLE_GPU is ON but CUDAToolkit was not found; building without CUDA support")
+  endif()
+endif()
+
 # Install
 install(TARGETS kadedb_core
   EXPORT KadeDBTargets
@@ -81,6 +92,14 @@ add_executable(kadedb_serialization_bench
 target_link_libraries(kadedb_serialization_bench PRIVATE KadeDB::kadedb_core)
 
 target_compile_features(kadedb_serialization_bench PRIVATE cxx_std_17)
+
+add_executable(kadedb_query_bench
+  bench/query_bench.cpp
+)
+
+target_link_libraries(kadedb_query_bench PRIVATE KadeDB::kadedb_core)
+
+target_compile_features(kadedb_query_bench PRIVATE cxx_std_17)
 
 # Examples
 add_executable(kadedb_inmemory_rel_example

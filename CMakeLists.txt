@@ -12,6 +12,7 @@ option(KADEDB_LITE_WITH_ROCKSDB "Build KadeDB-Lite with RocksDB dependency" OFF)
 option(KADEDB_ENABLE_ASAN "Enable AddressSanitizer (non-MSVC)" OFF)
 option(KADEDB_ENABLE_UBSAN "Enable UndefinedBehaviorSanitizer (non-MSVC)" OFF)
 option(KADEDB_ENABLE_COVERAGE "Enable coverage flags (gcc/clang, non-MSVC)" OFF)
+option(KADEDB_ENABLE_GPU "Enable optional GPU acceleration (CUDA)" OFF)
 
 # Standards
 set(CMAKE_CXX_STANDARD 17)
