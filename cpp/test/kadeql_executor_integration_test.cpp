@@ -5,12 +5,17 @@
 #include "kadedb/value.h"
 
 #include <cassert>
+#include <cstdlib>
 #include <iostream>
 
 using namespace kadedb;
 using namespace kadedb::kadeql;
 
 int main() {
+  // Enable GPU exec path (currently CPU-threaded fallback) for this test.
+  // This should not change semantics.
+  (void)setenv("KADEDB_ENABLE_GPU_EXEC", "1", 1);
+
   // Set up in-memory storage with a simple table
   InMemoryRelationalStorage storage;
   TableSchema users({

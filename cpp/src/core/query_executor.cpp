@@ -1,11 +1,13 @@
 #include "kadedb/query_executor.h"
 
+#include "kadedb/gpu.h"
 #include "kadedb/predicate_builder.h"
 #include "kadedb/schema.h"
 #include "kadedb/value.h"
 
 #include <algorithm>
 #include <cctype>
+#include <cstdlib>
 #include <map>
 #include <unordered_map>
 #include <unordered_set>
@@ -571,6 +573,103 @@ Result<ResultSet> QueryExecutor::executeSelect(const SelectStatement &select) {
       !st.ok()) {
     return Result<ResultSet>::err(st);
   }
+
+  const char *gpuEnv = std::getenv("KADEDB_ENABLE_GPU_EXEC");
+  const bool gpuEnabled = (gpuEnv && std::string(gpuEnv) != "0");
+
+  if (gpuEnabled && where && where->kind == Predicate::Kind::Comparison &&
+      where->rhs && where->rhs->type() == ValueType::Integer) {
+    auto baseRes =
+        storage_.select(select.getTableName(), /*columns=*/{}, std::nullopt);
+    if (!baseRes.hasValue())
+      return Result<ResultSet>::err(baseRes.status());
+    const ResultSet &base = baseRes.value();
+    const auto &names = base.columnNames();
+    const auto &types = base.columnTypes();
+
+    const size_t colIdx = base.findColumn(where->column);
+    if (colIdx != ResultSet::npos && colIdx < types.size() &&
+        types[colIdx] == ColumnType::Integer) {
+      std::vector<int64_t> data;
+      data.reserve(base.rowCount());
+      bool ok = true;
+      for (size_t r = 0; r < base.rowCount(); ++r) {
+        const Value &v = base.at(r, colIdx);
+        if (v.type() != ValueType::Integer) {
+          ok = false;
+          break;
+        }
+        data.push_back(static_cast<const IntegerValue &>(v).value());
+      }
+
+      if (ok) {
+        GpuScanSpec spec;
+        spec.column = data.data();
+        spec.count = data.size();
+        spec.rhs = static_cast<const IntegerValue &>(*where->rhs).value();
+        switch (where->op) {
+        case Predicate::Op::Eq:
+          spec.op = GpuScanSpec::Op::Eq;
+          break;
+        case Predicate::Op::Ne:
+          spec.op = GpuScanSpec::Op::Ne;
+          break;
+        case Predicate::Op::Lt:
+          spec.op = GpuScanSpec::Op::Lt;
+          break;
+        case Predicate::Op::Le:
+          spec.op = GpuScanSpec::Op::Le;
+          break;
+        case Predicate::Op::Gt:
+          spec.op = GpuScanSpec::Op::Gt;
+          break;
+        case Predicate::Op::Ge:
+          spec.op = GpuScanSpec::Op::Ge;
+          break;
+        }
+
+        std::vector<size_t> hits = gpuScanFilterInt64(spec);
+
+        std::vector<size_t> projIdx;
+        std::vector<std::string> outNames;
+        std::vector<ColumnType> outTypes;
+
+        if (cols.empty()) {
+          projIdx.resize(names.size());
+          for (size_t i = 0; i < names.size(); ++i) {
+            projIdx[i] = i;
+            outNames.push_back(names[i]);
+            outTypes.push_back(types[i]);
+          }
+        } else {
+          for (const auto &c : cols) {
+            size_t idx = base.findColumn(c);
+            if (idx == ResultSet::npos)
+              return Result<ResultSet>::err(Status::InvalidArgument(
+                  "Unknown column in projection: " + c));
+            projIdx.push_back(idx);
+            outNames.push_back(c);
+            outTypes.push_back(types[idx]);
+          }
+        }
+
+        ResultSet out(outNames, outTypes);
+        for (size_t r : hits) {
+          if (r >= base.rowCount())
+            continue;
+          std::vector<std::unique_ptr<Value>> rowVals;
+          rowVals.reserve(projIdx.size());
+          for (size_t pi : projIdx) {
+            rowVals.push_back(base.at(r, pi).clone());
+          }
+          out.addRow(ResultRow(std::move(rowVals)));
+        }
+
+        return Result<ResultSet>::ok(std::move(out));
+      }
+    }
+  }
+
   return storage_.select(select.getTableName(), cols, where);
 }
 

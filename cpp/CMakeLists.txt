@@ -23,6 +23,7 @@ add_library(kadedb_core ${LIB_TYPE}
   src/core/kadeql_parser.cpp
   src/core/query_executor.cpp
   src/gpu/gpu.cpp
+  src/gpu/gpu_transfer.cpp
 )
 
 add_library(KadeDB::kadedb_core ALIAS kadedb_core)
@@ -71,6 +72,7 @@ if(KADEDB_ENABLE_GPU)
   find_package(CUDAToolkit)
   if(CUDAToolkit_FOUND)
     target_compile_definitions(kadedb_core PUBLIC KADEDB_HAVE_CUDA)
+    target_link_libraries(kadedb_core PUBLIC CUDA::cudart)
   else()
     message(WARNING "KADEDB_ENABLE_GPU is ON but CUDAToolkit was not found; building without CUDA support")
   endif()

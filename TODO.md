@@ -133,13 +133,13 @@ This file tracks discrepancies between the README claims and the current codebas
   - [x] Add CMake option `KADEDB_ENABLE_GPU`
   - [x] Detect CUDA toolkit and configure compilation
   - [x] Add CI job for GPU builds (optional, or document manual build)
-- [ ] **Implement GPU-accelerated kernels**
+- [x] **Implement GPU-accelerated kernels**
   - [x] Create `cpp/src/gpu/` directory for CUDA code
   - [x] Implement parallel scan/filter kernel
   - [x] Implement parallel aggregation kernel
 - [ ] **Integrate with storage engine**
-  - [ ] Add GPU execution path in query executor
-  - [ ] Implement memory transfer optimizations (pinned memory, async copy)
+  - [x] Add GPU execution path in query executor
+  - [x] Implement memory transfer optimizations (pinned memory, async copy)
 - [ ] **Create tests and benchmarks**
   - [ ] GPU unit tests (requires CUDA-capable CI or manual testing)
   - [x] CPU baseline benchmark for scan/filter + time-series aggregation (`kadedb_query_bench`)
