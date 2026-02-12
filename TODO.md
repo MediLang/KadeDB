@@ -137,7 +137,7 @@ This file tracks discrepancies between the README claims and the current codebas
   - [x] Create `cpp/src/gpu/` directory for CUDA code
   - [x] Implement parallel scan/filter kernel
   - [x] Implement parallel aggregation kernel
-- [ ] **Integrate with storage engine**
+- [x] **Integrate with storage engine**
   - [x] Add GPU execution path in query executor
   - [x] Implement memory transfer optimizations (pinned memory, async copy)
 - [ ] **Create tests and benchmarks**
