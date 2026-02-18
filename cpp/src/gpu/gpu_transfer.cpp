@@ -95,6 +95,7 @@ Status gpuMemcpyDtoHAsync(void *dstHost, const void *srcDevice, size_t bytes,
 }
 
 Status gpuStreamSynchronize(GpuStreamHandle stream) {
+  // nullptr maps to the default stream (stream 0) by CUDA convention.
   cudaStream_t s = reinterpret_cast<cudaStream_t>(stream);
   return cudaToStatus(cudaStreamSynchronize(s), "cudaStreamSynchronize");
 }

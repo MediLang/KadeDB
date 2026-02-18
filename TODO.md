@@ -105,21 +105,21 @@ This file tracks discrepancies between the README claims and the current codebas
 #### 4. GPU Acceleration
 
 - [ ] **Evaluate GPU use cases**
-  - [ ] Identify compute-intensive operations (aggregations, joins, scans)
-    - [ ] Relational full scan + predicate (`InMemoryRelationalStorage::select` + `evalPredicate`)
-    - [ ] Time-series range scan + predicate (`InMemoryTimeSeriesStorage::rangeQuery`)
-    - [ ] Time-series bucket aggregation (`InMemoryTimeSeriesStorage::aggregate`: per-row bucketing + SUM/MIN/MAX/AVG/COUNT)
-    - [ ] Expression-mode aggregation (`QueryExecutor::executeSelectWithExpressions`: `TIME_BUCKET`, `FIRST`, `LAST`)
-    - [ ] Join note: no relational join operator is currently implemented; GPU join evaluation is blocked on implementing CPU join first
-  - [ ] Decide GPU-suitable candidates (near-term)
-    - [ ] Numeric predicate evaluation (filters on `int64`/`double`) with simple comparisons (Eq/Ne/Lt/Le/Gt/Ge)
-    - [ ] Projection + compaction (produce row-id mask on GPU, compact selected columns)
-    - [ ] Histogram-style aggregation / fixed-width time buckets for time-series (COUNT/SUM/MIN/MAX)
-  - [ ] Record constraints / risks (likely to dominate vs GPU compute)
-    - [ ] Current row layout uses `std::unique_ptr<Value>` per cell (AoS + pointers) -> not GPU-friendly; likely need a columnar/packed representation for GPU paths
-    - [ ] Host↔device transfer cost: GPU wins only for large batches and/or when reuse amortizes copies
-    - [ ] High-cardinality GROUP BY requires hash tables; start with fixed-width bucketing where bucket index can be computed cheaply
-    - [ ] String comparisons and general `Value::compare()` are not good first targets
+  - [x] Identify compute-intensive operations (aggregations, joins, scans)
+    - [x] Relational full scan + predicate (`InMemoryRelationalStorage::select` + `evalPredicate`)
+    - [x] Time-series range scan + predicate (`InMemoryTimeSeriesStorage::rangeQuery`)
+    - [x] Time-series bucket aggregation (`InMemoryTimeSeriesStorage::aggregate`: per-row bucketing + SUM/MIN/MAX/AVG/COUNT)
+    - [x] Expression-mode aggregation (`QueryExecutor::executeSelectWithExpressions`: `TIME_BUCKET`, `FIRST`, `LAST`)
+    - [x] Join note: no relational join operator is currently implemented; GPU join evaluation is blocked on implementing CPU join first
+  - [x] Decide GPU-suitable candidates (near-term)
+    - [x] Numeric predicate evaluation (filters on `int64`/`double`) with simple comparisons (Eq/Ne/Lt/Le/Gt/Ge)
+    - [x] Projection + compaction (produce row-id mask on GPU, compact selected columns)
+    - [x] Histogram-style aggregation / fixed-width time buckets for time-series (COUNT/SUM/MIN/MAX)
+  - [x] Record constraints / risks (likely to dominate vs GPU compute)
+    - [x] Current row layout uses `std::unique_ptr<Value>` per cell (AoS + pointers) -> not GPU-friendly; likely need a columnar/packed representation for GPU paths
+    - [x] Host↔device transfer cost: GPU wins only for large batches and/or when reuse amortizes copies
+    - [x] High-cardinality GROUP BY requires hash tables; start with fixed-width bucketing where bucket index can be computed cheaply
+    - [x] String comparisons and general `Value::compare()` are not good first targets
   - [ ] Benchmark CPU vs potential GPU speedup
     - [ ] Metrics: end-to-end query latency, rows/sec, bytes/sec, and time split (predicate eval vs materialization vs transfers)
     - [ ] Datasets: synthetic numeric tables (1e6, 1e7, 1e8 rows) with 1-3 numeric columns + optional timestamp

@@ -61,12 +61,12 @@ std::vector<size_t> gpuScanFilterInt64(const GpuScanSpec &spec) {
   for (size_t t = 0; t < threads; ++t) {
     const size_t start = (spec.count * t) / threads;
     const size_t end = (spec.count * (t + 1)) / threads;
-    pool.emplace_back([&, t, start, end]() {
-      auto &buf = locals[t];
-      buf.reserve((end - start) / 10);
+    auto *buf = &locals[t];
+    pool.emplace_back([buf, &spec, start, end]() {
+      buf->reserve((end - start) / 10);
       for (size_t i = start; i < end; ++i) {
         if (evalInt64(spec.column[i], spec.op, spec.rhs))
-          buf.push_back(i);
+          buf->push_back(i);
       }
     });
   }
@@ -107,8 +107,8 @@ GpuTimeBucketAggResult gpuTimeBucketSumCount(const GpuTimeBucketAggSpec &spec) {
   for (size_t t = 0; t < threads; ++t) {
     const size_t start = (spec.count * t) / threads;
     const size_t end = (spec.count * (t + 1)) / threads;
-    pool.emplace_back([&, t, start, end]() {
-      auto &map = locals[t];
+    auto *map = &locals[t];
+    pool.emplace_back([map, &spec, start, end]() {
       for (size_t i = start; i < end; ++i) {
         const int64_t ts = spec.timestamps[i];
         if (ts < spec.startInclusive || ts >= spec.endExclusive)
@@ -116,7 +116,7 @@ GpuTimeBucketAggResult gpuTimeBucketSumCount(const GpuTimeBucketAggSpec &spec) {
         const int64_t offset = ts - spec.startInclusive;
         const int64_t b = spec.startInclusive +
                           (offset / spec.bucketWidth) * spec.bucketWidth;
-        Agg &a = map[b];
+        Agg &a = (*map)[b];
         a.sum += spec.values[i];
         a.count += 1;
       }

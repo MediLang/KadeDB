@@ -626,6 +626,9 @@ Result<ResultSet> QueryExecutor::executeSelect(const SelectStatement &select) {
         case Predicate::Op::Ge:
           spec.op = GpuScanSpec::Op::Ge;
           break;
+        default:
+          // Unknown operator: fall back to CPU path
+          return storage_.select(select.getTableName(), cols, where);
         }
 
         std::vector<size_t> hits = gpuScanFilterInt64(spec);
